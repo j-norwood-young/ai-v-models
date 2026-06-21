@@ -43,7 +43,7 @@ export class ApiClient {
 }
 
 export function createApiClient(baseUrl: string): ApiClient {
-  const token = process.env["AVM_ADMIN_TOKEN"];
+  const token = process.env["AIVM_ADMIN_TOKEN"] ?? process.env["AVM_ADMIN_TOKEN"];
   return new ApiClient({ baseUrl, token, sessionCookie: undefined });
 }
 

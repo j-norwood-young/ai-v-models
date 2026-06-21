@@ -2,7 +2,7 @@
 	import Modal from './Modal.svelte';
 	import { api, type VModel } from '$lib/api.js';
 	import { getProxyBaseUrl } from '$lib/proxy-base.js';
-	import { buildChatCompletionUrl, buildChatCurl } from '$lib/connection-details.js';
+	import { buildAivmPromptCommand, buildChatCompletionUrl } from '$lib/connection-details.js';
 	import {
 		connectableVModels,
 		eligibleVModelsForKey,
@@ -50,12 +50,13 @@
 
 	const apiKeyDisplay = $derived(secret ?? (retrievable ? null : `${keyPrefix}…`));
 
-	const curlExample = $derived.by(() => {
+	const cliExample = $derived.by(() => {
 		if (!selectedModelId || !apiKeyDisplay || !selectedHasBackends) return null;
-		return buildChatCurl(
+		return buildAivmPromptCommand(
 			baseUrl,
 			apiKeyDisplay,
 			selectedModelId,
+			'Hello!',
 			selectedVModel?.streaming ?? true
 		);
 	});
@@ -247,34 +248,34 @@
 				</div>
 			</div>
 
-			{#if curlExample}
+			{#if cliExample}
 				<div>
 					<div class="flex items-center justify-between mb-1">
-						<span class="text-xs font-medium text-gray-400">cURL example</span>
+						<span class="text-xs font-medium text-gray-400">aivm example</span>
 						<button
 							type="button"
-							onclick={() => copyField('curl', curlExample)}
+							onclick={() => copyField('cli', cliExample)}
 							class="text-xs text-cyan-400 hover:text-cyan-300 transition-colors min-w-[2.5rem] text-right"
 						>
-							{copyLabel('curl')}
+							{copyLabel('cli')}
 						</button>
 					</div>
 					<pre
 						class="font-mono text-xs text-gray-300 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2.5 overflow-x-auto whitespace-pre-wrap break-all max-h-48 overflow-y-auto"
-					><code>{curlExample}</code></pre>
+					><code>{cliExample}</code></pre>
 				</div>
 			{/if}
 		</div>
 	{/if}
 
 	{#snippet footer()}
-		{#if curlExample}
+		{#if cliExample}
 			<button
 				type="button"
-				onclick={() => copyField('curl-footer', curlExample)}
+				onclick={() => copyField('cli-footer', cliExample)}
 				class="px-3 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 text-white rounded-md transition-colors min-w-[7.5rem]"
 			>
-				{copyLabel('curl-footer') === 'Copied' ? 'Copied' : 'Copy cURL'}
+				{copyLabel('cli-footer') === 'Copied' ? 'Copied' : 'Copy command'}
 			</button>
 		{/if}
 		<button
