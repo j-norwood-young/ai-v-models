@@ -9,9 +9,10 @@
 		level: BackendHealthLevel;
 		summary: string;
 		backends: BackendHealthEntry[];
+		align?: 'left' | 'right';
 	}
 
-	let { level, summary, backends }: Props = $props();
+	let { level, summary, backends, align = 'right' }: Props = $props();
 
 	let open = $state(false);
 
@@ -39,7 +40,7 @@
 	></button>
 
 	{#if open}
-		<div class={`health-tooltip health-tooltip--${level}`} role="tooltip">
+		<div class={`health-tooltip health-tooltip--${level} health-tooltip--align-${align}`} role="tooltip">
 			<div class="health-tooltip__header">
 				<span class={`health-tooltip__icon health-tooltip__icon--${level}`} aria-hidden="true"></span>
 				<span class="health-tooltip__title">{summary}</span>

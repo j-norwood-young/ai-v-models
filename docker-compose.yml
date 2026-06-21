@@ -12,6 +12,7 @@ services:
       AIVM_DATA_DIR: "/data"
       AIVM_LOG_LEVEL: "info"
       AIVM_LOG_FORMAT: "json"
+      AIVM_DOCKER: "1"
       AIVM_CORS_ORIGINS: "${AIVM_CORS_ORIGINS:-http://localhost:4000,http://localhost:5173}"
       AIVM_URL: "http://localhost:${AIVM_HOST_PROXY_PORT:-4000}"
       AIVM_WEB_URL: "http://localhost:${AIVM_HOST_WEB_PORT:-5173}"

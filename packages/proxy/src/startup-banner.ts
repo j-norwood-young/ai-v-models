@@ -1,7 +1,9 @@
+import { existsSync } from "node:fs";
 import type { AppConfig, DbClient } from "@ai-v-models/core";
 import { backends as backendsTable, vmodels as vmodelsTable } from "@ai-v-models/core";
 
 const VERSION = "0.0.1";
+const DEV_WEB_PORT = "5173";
 
 const LOGO = [
   "   █████╗   ██╗  ██╗   ██╗  ███╗   ███╗",
@@ -28,18 +30,39 @@ function displayHost(host: string): string {
   return host === "0.0.0.0" || host === "::" ? "localhost" : host;
 }
 
-/** Public base URL for docs, banner, and CLI output (may differ from bind port behind Docker/reverse proxy). */
+/** True when running inside a Docker container (compose sets AIVM_DOCKER=1). */
+export function isRunningInDocker(): boolean {
+  return process.env["AIVM_DOCKER"] === "1" || existsSync("/.dockerenv");
+}
+
+function normalizeUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+/** Public base URL for docs, banner, and CLI output. */
 export function resolvePublicBaseUrl(config: AppConfig): string {
-  const explicit = process.env["AIVM_URL"]?.trim();
-  if (explicit) return explicit.replace(/\/+$/, "");
+  if (isRunningInDocker()) {
+    const explicit = process.env["AIVM_URL"]?.trim();
+    if (explicit) return normalizeUrl(explicit);
+  }
+
   const { host, port } = config.server;
   return `http://${displayHost(host)}:${port}`;
 }
 
-/** Admin UI URL when served on a different host port (e.g. Docker `web` service). */
+/** Admin UI URL — Docker external port, Vite dev server, or bundled with the proxy. */
 export function resolveWebUiUrl(baseUrl: string): string {
-  const explicit = process.env["AIVM_WEB_URL"]?.trim();
-  if (explicit) return explicit.replace(/\/+$/, "");
+  if (isRunningInDocker()) {
+    const explicit = process.env["AIVM_WEB_URL"]?.trim();
+    if (explicit) return normalizeUrl(explicit);
+    return baseUrl;
+  }
+
+  if (process.env["AIVM_DEV"] === "1") {
+    const port = process.env["AIVM_DEV_WEB_PORT"]?.trim() || DEV_WEB_PORT;
+    return `http://localhost:${port}`;
+  }
+
   return baseUrl;
 }
 

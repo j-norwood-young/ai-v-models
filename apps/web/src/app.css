@@ -332,7 +332,6 @@ body {
 .health-tooltip {
 	position: absolute;
 	top: calc(100% + 0.5rem);
-	right: 0;
 	z-index: 60;
 	min-width: 13rem;
 	max-width: 18rem;
@@ -343,6 +342,12 @@ body {
 	font-size: 0.75rem;
 	line-height: 1.4;
 	overflow: hidden;
+}
+.health-tooltip--align-right {
+	right: 0;
+}
+.health-tooltip--align-left {
+	left: 0;
 }
 .health-tooltip--green {
 	border-color: rgba(63, 185, 80, 0.45);

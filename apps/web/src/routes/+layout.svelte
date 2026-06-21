@@ -151,7 +151,6 @@
 			}
 			sidebarOpen = false;
 			sse.connect();
-			void loadBackendHealth();
 		} finally {
 			booting = false;
 		}
@@ -160,6 +159,11 @@
 	$effect(() => {
 		void page.url.pathname;
 		sidebarOpen = false;
+	});
+
+	$effect(() => {
+		if (isPublicPage || booting || !auth.user) return;
+		void loadBackendHealth();
 	});
 
 	$effect(() => {
@@ -271,6 +275,7 @@
 						level={backendHealth.level}
 						summary={backendHealth.summary}
 						backends={backendHealth.backends}
+						align="left"
 					/>
 				</div>
 			</div>

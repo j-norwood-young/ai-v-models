@@ -4,7 +4,7 @@ import { join } from "node:path";
 import yaml from "js-yaml";
 import { config as loadDotenv } from "dotenv";
 import { AppConfigSchema, type AppConfig } from "./schema.js";
-import { DEV_PORT } from "./constants.js";
+import { DEV_PORT, PROD_PORT } from "./constants.js";
 
 /** Returns the default data directory: ~/.ai-reverse-proxy */
 export function defaultDataDir(): string {
@@ -103,11 +103,16 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   // 4. Map env vars to config structure
   const envConfig = envToPartialConfig();
 
-  // Dev mode uses a separate default port so `pnpm dev` and `pnpm start` can run together
-  if (process.env["AIVM_DEV"] === "1" && process.env["AIVM_PORT"] === undefined) {
+  // Dev mode uses a separate default port so `pnpm dev` and `pnpm start` can run together.
+  // Ignore AIVM_PORT when it matches the production default — shared .env files often set
+  // AIVM_PORT=4000 for Docker while local dev should still bind to DEV_PORT.
+  if (process.env["AIVM_DEV"] === "1") {
+    const envPort = process.env["AIVM_PORT"];
+    const port =
+      envPort === undefined || envPort === String(PROD_PORT) ? DEV_PORT : Number(envPort);
     envConfig["server"] = deepMerge(
       (envConfig["server"] as Record<string, unknown>) ?? {},
-      { port: DEV_PORT },
+      { port },
     );
   }
 
