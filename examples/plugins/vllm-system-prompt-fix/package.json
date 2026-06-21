@@ -1,0 +1,39 @@
+{
+  "name": "@ai-v-models/plugin-vllm-system-prompt-fix",
+  "version": "1.0.0",
+  "description": "Merges multiple system messages into a single system prompt for strict vLLM backends.",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "avm-plugin": {
+    "name": "vLLM System Prompt Fix",
+    "description": "vLLM and some other backends only support a single system message. This plugin merges multiple system messages into one before forwarding the request.",
+    "version": "1.0.0",
+    "needsResponseBuffer": false,
+    "hooks": ["onRequest"],
+    "configSchema": {
+      "separator": {
+        "type": "text",
+        "label": "System prompt separator",
+        "description": "Text inserted between merged system prompts",
+        "default": "\n\n---\n\n"
+      },
+      "position": {
+        "type": "select",
+        "label": "Merged prompt position",
+        "description": "Where to place the merged system prompt in the messages array",
+        "options": ["first", "last"],
+        "default": "first"
+      }
+    }
+  },
+  "devDependencies": {
+    "@ai-v-models/plugin-sdk": "workspace:*",
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}

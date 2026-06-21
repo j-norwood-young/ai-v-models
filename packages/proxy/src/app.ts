@@ -10,6 +10,8 @@ import { backendsRoutes } from "./routes/api/backends.js";
 import { vmodelsRoutes } from "./routes/api/vmodels.js";
 import { keysRoutes } from "./routes/api/keys.js";
 import { hooksRoutes } from "./routes/api/hooks.js";
+import { pluginsRoutes } from "./routes/api/plugins.js";
+import { availableModelsRoute } from "./routes/api/available-models.js";
 import { metricsApiRoutes } from "./routes/api/metrics-api.js";
 import { authRoutes } from "./routes/api/auth.js";
 import { webauthnRoutes } from "./routes/api/webauthn.js";
@@ -109,6 +111,8 @@ export async function createApp(ctx: AppContext) {
   await vmodelsRoutes(app, ctx);
   await keysRoutes(app, ctx);
   await hooksRoutes(app, ctx);
+  await pluginsRoutes(app, ctx);
+  await availableModelsRoute(app, ctx);
   await metricsApiRoutes(app, ctx);
   await authRoutes(app, ctx);
   await webauthnRoutes(app, ctx);

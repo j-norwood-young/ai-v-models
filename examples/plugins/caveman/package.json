@@ -1,0 +1,33 @@
+{
+  "name": "@ai-v-models/plugin-caveman",
+  "version": "1.0.0",
+  "description": "Token compression — make AI talk like caveman. Why use many token when few do trick.",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "avm-plugin": {
+    "name": "Caveman",
+    "description": "Compress AI output tokens by ~65% using caveman-style terse communication. Why use many token when few do trick.",
+    "version": "1.0.0",
+    "needsResponseBuffer": false,
+    "hooks": ["onRequest"],
+    "configSchema": {
+      "level": {
+        "type": "select",
+        "label": "Compression level",
+        "description": "lite: drop filler words | full: classic caveman | ultra: telegraphic | wenyan: classical Chinese",
+        "options": ["lite", "full", "ultra", "wenyan"],
+        "default": "full"
+      }
+    }
+  },
+  "devDependencies": {
+    "@ai-v-models/plugin-sdk": "workspace:*",
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}

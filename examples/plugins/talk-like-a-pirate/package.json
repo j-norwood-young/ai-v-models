@@ -1,0 +1,39 @@
+{
+  "name": "@ai-v-models/plugin-talk-like-a-pirate",
+  "version": "1.0.0",
+  "description": "Makes your AI talk like a pirate. Arrr!",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "avm-plugin": {
+    "name": "Talk like a Pirate",
+    "description": "Injects a pirate-speak instruction into the system prompt. Arrr!",
+    "version": "1.0.0",
+    "needsResponseBuffer": false,
+    "hooks": ["onRequest"],
+    "configSchema": {
+      "intensity": {
+        "type": "select",
+        "label": "Pirate intensity",
+        "description": "How pirate-y the responses should be",
+        "options": ["light", "full", "ultra"],
+        "default": "full"
+      },
+      "preserveCode": {
+        "type": "boolean",
+        "label": "Preserve code blocks",
+        "description": "When enabled, instructs the AI not to pirate-ify code examples",
+        "default": true
+      }
+    }
+  },
+  "devDependencies": {
+    "@ai-v-models/plugin-sdk": "workspace:*",
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}

@@ -11,6 +11,9 @@ import { streamingProxy } from "../../streaming-proxy.js";
 import { UsageRecorder } from "../../usage-recorder.js";
 import type { BackendCandidate } from "../../balancer.js";
 import type { Backend } from "@ai-v-models/core";
+import type { ChatRequest } from "@ai-v-models/plugin-sdk";
+import { resolveBindings } from "../../plugins/loader.js";
+import type { PluginHostContext } from "../../plugins/runtime.js";
 
 export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
   const recorder = new UsageRecorder(ctx.db, ctx.sse);
@@ -161,8 +164,47 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
       upstreamApiKey = rawKey;
     }
 
-    // Mutate request body: replace model ID with backend-specific model ID
-    const upstreamBody = { ...body, model: selected.backendModelId };
+    // ── Plugin: collect bindings for this request ─────────────────────────
+    const bindings = await resolveBindings(ctx.db, {
+      vmodelId: vmodel?.id ?? null,
+      backendId: selected.backendId,
+      keyId: key.id,
+    });
+
+    const needsBuffer = bindings.some((b) => b.needsResponseBuffer);
+
+    // Build the host context for plugin execution
+    const pluginHostCtx: PluginHostContext = {
+      vmodelId: vmodel?.id ?? "",
+      backendId: selected.backendId,
+      backendModelId: selected.backendModelId,
+      keyPrefix: key.prefix,
+      timestamp: Date.now(),
+      // ctx.ai.complete: re-enter the proxy's backend logic without running plugins again
+      aiComplete: async (opts) => {
+        const { fetch: _fetch } = await import("undici");
+        const aiBody = { ...opts, __avmInternal: true };
+        const res = await _fetch(buildBackendApiUrl(selected.backend.baseUrl, "/v1/chat/completions"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(upstreamApiKey ? { Authorization: `Bearer ${upstreamApiKey}` } : {}),
+          },
+          body: JSON.stringify(aiBody),
+        });
+        if (!res.ok) throw new Error(`ai.complete upstream error: ${res.status}`);
+        return res.json() as Promise<import("@ai-v-models/plugin-sdk").ChatResponse>;
+      },
+    };
+
+    // ── Plugin: run onRequest hooks ────────────────────────────────────────
+    let mutatedBody: ChatRequest = { ...body } as ChatRequest;
+    for (const binding of bindings) {
+      mutatedBody = await ctx.pluginRuntime.runOnRequest(binding, mutatedBody, pluginHostCtx);
+    }
+
+    // Ensure model is always the backend model ID (plugins may not touch it)
+    const upstreamBody = { ...mutatedBody, model: selected.backendModelId };
 
     ctx.balancer.incrementConcurrency(selected.backendId);
 
@@ -175,7 +217,35 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
       backendName: selected.backend.name,
       modelId: selected.backendModelId,
       keyPrefix: key.prefix,
+      bufferResponse: needsBuffer,
     });
+
+    // ── Plugin: run onResponse hooks (only when buffered) ─────────────────
+    if (needsBuffer && proxyResult.bufferedResponse && !reply.sent) {
+      let transformedResponse = proxyResult.bufferedResponse;
+      const responseBindings = bindings.filter((b) => b.needsResponseBuffer);
+      for (const binding of responseBindings) {
+        transformedResponse = await ctx.pluginRuntime.runOnResponse(
+          binding,
+          transformedResponse,
+          pluginHostCtx,
+        );
+      }
+      // Send the transformed response to the client
+      if (body["stream"] !== false) {
+        // Re-emit as SSE for streaming clients
+        reply.raw.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        });
+        reply.raw.write(`data: ${JSON.stringify(transformedResponse)}\n\n`);
+        reply.raw.write("data: [DONE]\n\n");
+        reply.raw.end();
+      } else {
+        reply.status(200).header("Content-Type", "application/json").send(JSON.stringify(transformedResponse));
+      }
+    }
 
     ctx.balancer.decrementConcurrency(selected.backendId);
 

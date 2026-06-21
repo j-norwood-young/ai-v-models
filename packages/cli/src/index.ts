@@ -6,6 +6,7 @@ import { registerBackendCommands } from "./commands/backends.js";
 import { registerVModelCommands } from "./commands/vmodels.js";
 import { registerKeyCommands } from "./commands/keys.js";
 import { registerHookCommands } from "./commands/hooks.js";
+import { registerPluginCommands } from "./commands/plugins.js";
 import { registerUserCommands } from "./commands/users.js";
 import { registerAdminTokenCommands } from "./commands/admin-tokens.js";
 
@@ -56,6 +57,7 @@ registerBackendCommands(program, getClient);
 registerVModelCommands(program, getClient);
 registerKeyCommands(program, getClient);
 registerHookCommands(program, getClient);
+registerPluginCommands(program, getClient);
 registerUserCommands(program);
 registerAdminTokenCommands(program, getClient);
 

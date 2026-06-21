@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import {
   loadConfig,
   defaultDataDir,
@@ -13,6 +14,7 @@ import { BackendBalancer } from "./balancer.js";
 import { HealthMonitor } from "./health.js";
 import { SseEmitter } from "./sse.js";
 import { ensureAdminUser } from "./setup.js";
+import { PluginRuntime } from "./plugins/runtime.js";
 import type { AppContext } from "./context.js";
 
 const config = loadConfig();
@@ -42,6 +44,11 @@ const masterKey = getMasterKey(dataDir);
 // Ensure admin user exists
 await ensureAdminUser(db);
 
+// Plugin runtime
+const pluginsDir = join(dataDir, "plugins");
+mkdirSync(pluginsDir, { recursive: true });
+const pluginRuntime = new PluginRuntime();
+
 // Build context
 const ctx: AppContext = {
   db,
@@ -50,6 +57,8 @@ const ctx: AppContext = {
   keyAuth: new KeyAuthenticator(db),
   balancer: new BackendBalancer(),
   sse: new SseEmitter(),
+  pluginRuntime,
+  pluginsDir,
 };
 
 // Start health monitor
@@ -73,6 +82,7 @@ log.info({ host, port }, `ai-v-models listening on http://${host === "0.0.0.0" ?
 const shutdown = async (signal: string) => {
   log.info({ signal }, "Shutting down gracefully...");
   healthMonitor.stop();
+  pluginRuntime.dispose();
   await app.close();
   db.sqlite.close();
   process.exit(0);

@@ -346,6 +346,54 @@ export const hooks = sqliteTable("hooks", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+// ── Plugins ───────────────────────────────────────────────────────────────────
+export const plugins = sqliteTable(
+  "plugins",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description"),
+    /** "npm:<pkg>" | "github:<owner>/<repo>" | "local:<path>" */
+    source: text("source").notNull(),
+    version: text("version"),
+    /** JSON: PluginManifest */
+    manifest: text("manifest").notNull(),
+    /** JSON: ConfigSchema */
+    configSchema: text("config_schema"),
+    /** Absolute path to bundled JS on disk */
+    bundlePath: text("bundle_path"),
+    needsResponseBuffer: integer("needs_response_buffer", { mode: "boolean" }).notNull().default(false),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [index("idx_plugins_enabled").on(t.enabled)],
+);
+
+// ── Plugin Bindings ────────────────────────────────────────────────────────────
+export const pluginBindings = sqliteTable(
+  "plugin_bindings",
+  {
+    id: text("id").primaryKey(),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => plugins.id, { onDelete: "cascade" }),
+    /** "global" | "vmodel" | "backend" | "key" */
+    scopeType: text("scope_type").notNull(),
+    /** null for global; entity ID otherwise */
+    scopeId: text("scope_id"),
+    /** JSON: per-binding config values */
+    config: text("config"),
+    order: integer("order").notNull().default(0),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    index("idx_plugin_bindings_plugin").on(t.pluginId),
+    index("idx_plugin_bindings_scope").on(t.scopeType, t.scopeId),
+  ],
+);
+
 // ── Audit Log ─────────────────────────────────────────────────────────────────
 export const auditLog = sqliteTable(
   "audit_log",

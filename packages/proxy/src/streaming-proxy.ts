@@ -19,6 +19,8 @@ export interface ProxyRequestOptions {
   backendName: string;
   modelId: string;
   keyPrefix?: string;
+  /** When true, buffer the full response (for response-transform plugins) */
+  bufferResponse?: boolean;
 }
 
 export interface ProxyResult {
@@ -32,6 +34,8 @@ export interface ProxyResult {
   toolCallCount: number;
   error: string | undefined;
   responseBody: string | undefined;
+  /** Populated only when bufferResponse=true; the parsed ChatResponse for plugin transforms */
+  bufferedResponse: import("@ai-v-models/plugin-sdk").ChatResponse | null;
 }
 
 export async function streamingProxy(
@@ -86,6 +90,7 @@ export async function streamingProxy(
         toolCallCount: 0,
         error: body,
         responseBody: undefined,
+        bufferedResponse: null,
       };
     }
 
@@ -93,6 +98,49 @@ export async function streamingProxy(
     const isStreaming =
       contentType.includes("text/event-stream") ||
       (opts.requestBody["stream"] !== false);
+
+    // Buffered mode: collect full upstream response for plugin response-transforms
+    if (opts.bufferResponse && response.body) {
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of response.body) {
+        chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk as ArrayBuffer));
+      }
+      const rawBody = Buffer.concat(chunks).toString("utf8");
+      const durationMs = Date.now() - start;
+      ttft = durationMs;
+
+      let bufferedResponse: import("@ai-v-models/plugin-sdk").ChatResponse | null = null;
+      try {
+        // If streaming, reconstruct a ChatResponse from SSE chunks
+        if (isStreaming) {
+          bufferedResponse = reconstructResponseFromSse(rawBody);
+        } else {
+          bufferedResponse = JSON.parse(rawBody) as import("@ai-v-models/plugin-sdk").ChatResponse;
+        }
+        const usage = bufferedResponse?.usage;
+        if (usage) {
+          promptTokens = usage.prompt_tokens;
+          completionTokens = usage.completion_tokens;
+          totalTokens = usage.total_tokens;
+        }
+      } catch {
+        // Not parseable — fall through with empty stats
+      }
+
+      return {
+        statusCode: 200,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        ttftMs: ttft,
+        durationMs,
+        tps: null,
+        toolCallCount,
+        error: undefined,
+        responseBody: rawBody,
+        bufferedResponse,
+      };
+    }
 
     if (isStreaming && response.body) {
       reply.raw.writeHead(200, {
@@ -174,6 +222,7 @@ export async function streamingProxy(
         toolCallCount,
         error: undefined,
         responseBody: body,
+        bufferedResponse: null,
       };
     }
   } catch (err) {
@@ -210,5 +259,49 @@ export async function streamingProxy(
     durationMs,
   );
 
-  return { statusCode, promptTokens, completionTokens, totalTokens, ttftMs: ttft, durationMs, tps, toolCallCount, error, responseBody: undefined };
+  return { statusCode, promptTokens, completionTokens, totalTokens, ttftMs: ttft, durationMs, tps, toolCallCount, error, responseBody: undefined, bufferedResponse: null };
+}
+
+/**
+ * Reconstruct a single ChatResponse object by concatenating SSE delta chunks.
+ * Used when bufferResponse=true for streaming upstreams.
+ */
+function reconstructResponseFromSse(raw: string): import("@ai-v-models/plugin-sdk").ChatResponse {
+  const lines = raw.split("\n");
+  let id = "";
+  let model = "";
+  let created = Math.floor(Date.now() / 1000);
+  let content = "";
+  let finishReason: string | null = null;
+  let usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | undefined;
+
+  for (const line of lines) {
+    if (!line.startsWith("data: ") || line === "data: [DONE]") continue;
+    try {
+      const chunk = JSON.parse(line.slice(6)) as Record<string, unknown>;
+      if (!id && chunk["id"]) id = chunk["id"] as string;
+      if (!model && chunk["model"]) model = chunk["model"] as string;
+      if (chunk["created"]) created = chunk["created"] as number;
+      const choices = chunk["choices"] as Array<Record<string, unknown>> | undefined;
+      if (choices?.[0]) {
+        const delta = choices[0]["delta"] as Record<string, unknown> | undefined;
+        if (delta?.["content"]) content += delta["content"] as string;
+        if (choices[0]["finish_reason"]) finishReason = choices[0]["finish_reason"] as string;
+      }
+      const u = chunk["usage"] as { prompt_tokens: number; completion_tokens: number; total_tokens: number } | undefined;
+      if (u) usage = u;
+    } catch {
+      // skip bad chunks
+    }
+  }
+
+  const result: import("@ai-v-models/plugin-sdk").ChatResponse = {
+    id: id || `avm-reconstructed-${Date.now()}`,
+    object: "chat.completion",
+    created,
+    model: model || "unknown",
+    choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: finishReason }],
+  };
+  if (usage) result.usage = usage;
+  return result;
 }

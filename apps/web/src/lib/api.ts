@@ -366,6 +366,67 @@ export interface Hook {
 	created_at: string;
 }
 
+// ── Plugins ──────────────────────────────────────────────────────────────────
+
+export type ConfigFieldType = 'string' | 'text' | 'number' | 'boolean' | 'select' | 'secret' | 'model' | 'backend';
+
+export interface ConfigField {
+	type: ConfigFieldType;
+	label: string;
+	description?: string;
+	required?: boolean;
+	default?: unknown;
+	options?: string[]; // for select
+	min?: number;
+	max?: number;
+}
+
+export type ConfigSchema = Record<string, ConfigField>;
+
+export interface PluginManifest {
+	name: string;
+	description?: string;
+	version: string;
+	hooks: Array<'onRequest' | 'onResponse'>;
+	needsResponseBuffer?: boolean;
+}
+
+export interface Plugin {
+	id: string;
+	name: string;
+	description: string | null;
+	source: string;
+	version: string | null;
+	manifest: PluginManifest;
+	configSchema: ConfigSchema | null;
+	bundlePath: string | null;
+	needsResponseBuffer: boolean;
+	enabled: boolean;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export type PluginScopeType = 'global' | 'vmodel' | 'backend' | 'key';
+
+export interface PluginBinding {
+	id: string;
+	pluginId: string;
+	scopeType: PluginScopeType;
+	scopeId: string | null;
+	config: Record<string, unknown> | null;
+	order: number;
+	enabled: boolean;
+	createdAt: number;
+}
+
+export interface AvailableModel {
+	id: string;
+	ownedBy: string;
+	backendId?: string;
+	backendName?: string;
+	type: 'backend-model' | 'vmodel';
+}
+
 export interface MetricsSummary {
 	total_requests_24h: number;
 	total_tokens_24h: number;
@@ -682,6 +743,33 @@ export const api = {
 		>('/auth/webauthn/credentials'),
 	deletePasskey: (id: string) =>
 		request<{ success: boolean }>(`/auth/webauthn/credentials/${id}`, { method: 'DELETE' }),
+
+	// Plugins
+	getPlugins: () => request<Plugin[]>('/plugins'),
+	getPlugin: (id: string) => request<Plugin & { bindings: PluginBinding[] }>(`/plugins/${id}`),
+	installPlugin: (source: string, name?: string) =>
+		request<Plugin>('/plugins', { method: 'POST', json: { source, name } }),
+	updatePlugin: (id: string, data: Partial<Pick<Plugin, 'name' | 'description' | 'enabled'>>) =>
+		request<{ success: boolean }>(`/plugins/${id}`, { method: 'PATCH', json: data }),
+	reinstallPlugin: (id: string) =>
+		request<{ success: boolean }>(`/plugins/${id}/reinstall`, { method: 'POST' }),
+	deletePlugin: (id: string) => request<void>(`/plugins/${id}`, { method: 'DELETE' }),
+
+	getPluginBindings: (pluginId: string) =>
+		request<PluginBinding[]>(`/plugins/${pluginId}/bindings`),
+	createBinding: (
+		pluginId: string,
+		data: { scopeType: PluginScopeType; scopeId?: string | null; config?: Record<string, unknown> | null; order?: number }
+	) => request<PluginBinding>(`/plugins/${pluginId}/bindings`, { method: 'POST', json: data }),
+	updateBinding: (
+		pluginId: string,
+		bindingId: string,
+		data: Partial<Pick<PluginBinding, 'enabled' | 'config' | 'order'>>
+	) => request<{ success: boolean }>(`/plugins/${pluginId}/bindings/${bindingId}`, { method: 'PATCH', json: data }),
+	deleteBinding: (pluginId: string, bindingId: string) =>
+		request<void>(`/plugins/${pluginId}/bindings/${bindingId}`, { method: 'DELETE' }),
+
+	getAvailableModels: () => request<{ models: AvailableModel[] }>('/available-models'),
 
 	// Settings
 	getSettings: () => request<AppSettings>('/settings'),
