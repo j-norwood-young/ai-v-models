@@ -17,7 +17,7 @@ export async function ensureAdminUser(db: DbClient): Promise<void> {
   if (existing.length > 0) return;
 
   const adminUsername = process.env["AVM_ADMIN_USER"] ?? "admin";
-  const adminPassword = process.env["AVM_ADMIN_PASSWORD"] ?? "changeme123";
+  const adminPassword = process.env["AVM_ADMIN_PASSWORD"] ?? "admin";
 
   const passwordHash = await hash(adminPassword);
   const now = Date.now();
@@ -31,13 +31,15 @@ export async function ensureAdminUser(db: DbClient): Promise<void> {
       passwordHash,
       role: "admin",
       enabled: true,
+      mustChangePassword: true,
+      totpEnabled: false,
       createdAt: now,
       updatedAt: now,
     })
     .run();
 
-  log.info(
+  log.warn(
     { username: adminUsername },
-    "Created initial admin user. CHANGE THE PASSWORD IMMEDIATELY.",
+    "Created initial admin user (default password: admin). You must change the password on first login.",
   );
 }

@@ -6,6 +6,8 @@ import { registerBackendCommands } from "./commands/backends.js";
 import { registerVModelCommands } from "./commands/vmodels.js";
 import { registerKeyCommands } from "./commands/keys.js";
 import { registerHookCommands } from "./commands/hooks.js";
+import { registerUserCommands } from "./commands/users.js";
+import { registerAdminTokenCommands } from "./commands/admin-tokens.js";
 
 const program = new Command();
 
@@ -54,6 +56,8 @@ registerBackendCommands(program, getClient);
 registerVModelCommands(program, getClient);
 registerKeyCommands(program, getClient);
 registerHookCommands(program, getClient);
+registerUserCommands(program);
+registerAdminTokenCommands(program, getClient);
 
 // Config command
 program

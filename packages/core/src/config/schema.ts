@@ -37,6 +37,13 @@ export const SecurityConfigSchema = z.object({
   sessionMaxAgeSecs: z.coerce.number().int().default(86400 * 7), // 7 days
   loginRateLimitMaxAttempts: z.coerce.number().int().default(10),
   loginRateLimitWindowSecs: z.coerce.number().int().default(300),
+  webauthnRpId: z.string().optional(),
+  webauthnOrigins: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((v) =>
+      v === undefined ? undefined : Array.isArray(v) ? v : v.split(",").map((s) => s.trim()),
+    ),
 });
 
 export const AppConfigSchema = z.object({

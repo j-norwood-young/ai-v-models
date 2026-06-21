@@ -1,7 +1,18 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDbClient, getMasterKey, ensureDataDir, loadConfig } from "@ai-v-models/core";
+import { nanoid } from "nanoid";
+import { hash } from "@node-rs/argon2";
+import {
+  createDbClient,
+  getMasterKey,
+  ensureDataDir,
+  loadConfig,
+  users,
+  apiTokens,
+  generateAdminToken,
+  hashToken,
+} from "@ai-v-models/core";
 import { createApp } from "@ai-v-models/proxy/app";
 import { KeyAuthenticator } from "@ai-v-models/proxy/key-auth";
 import { BackendBalancer } from "@ai-v-models/proxy/balancer";
@@ -14,6 +25,7 @@ export interface TestProxy {
   dataDir: string;
   db: ReturnType<typeof createDbClient>;
   masterKey: Buffer;
+  adminToken: string;
   stop: () => Promise<void>;
 }
 
@@ -86,8 +98,26 @@ export async function startTestProxy(): Promise<TestProxy> {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL,
       password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'viewer',
-      enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
+      totp_secret TEXT,
+      totp_enabled INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL, last_login_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS pending_totp_logins (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token TEXT NOT NULL UNIQUE,
+      expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS webauthn_credentials (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, credential_id TEXT NOT NULL UNIQUE,
+      webauthn_user_id TEXT NOT NULL, public_key TEXT NOT NULL, counter INTEGER NOT NULL DEFAULT 0,
+      device_type TEXT NOT NULL, backed_up INTEGER NOT NULL DEFAULT 0, transports TEXT,
+      name TEXT NOT NULL, created_at INTEGER NOT NULL, last_used_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS webauthn_challenges (
+      id TEXT PRIMARY KEY, challenge TEXT NOT NULL, user_id TEXT, type TEXT NOT NULL,
+      expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token TEXT NOT NULL UNIQUE,
@@ -125,6 +155,34 @@ export async function startTestProxy(): Promise<TestProxy> {
     );
   `);
 
+  const now = Date.now();
+  const adminUserId = `user-${nanoid(8)}`;
+  const passwordHash = await hash("test-admin-password");
+  db.db.insert(users).values({
+    id: adminUserId,
+    username: "testadmin",
+    displayName: "Test Admin",
+    passwordHash,
+    role: "admin",
+    enabled: true,
+    mustChangePassword: false,
+    totpEnabled: false,
+    createdAt: now,
+    updatedAt: now,
+  }).run();
+
+  const { token: adminToken, prefix } = generateAdminToken();
+  db.db.insert(apiTokens).values({
+    id: `atok-${nanoid(8)}`,
+    name: "e2e-test",
+    tokenHash: hashToken(adminToken),
+    prefix,
+    userId: adminUserId,
+    enabled: true,
+    expiresAt: null,
+    createdAt: now,
+  }).run();
+
   const config = loadConfig({ configFile: join(dataDir, "config.yaml") });
   config.server.port = port;
 
@@ -146,6 +204,7 @@ export async function startTestProxy(): Promise<TestProxy> {
     dataDir,
     db,
     masterKey,
+    adminToken,
     stop: async () => {
       await app.close();
       db.sqlite.close();

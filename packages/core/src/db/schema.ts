@@ -217,11 +217,74 @@ export const users = sqliteTable(
     passwordHash: text("password_hash").notNull(),
     role: text("role").notNull().default("viewer"), // admin|viewer
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    mustChangePassword: integer("must_change_password", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    totpSecret: text("totp_secret"),
+    totpEnabled: integer("totp_enabled", { mode: "boolean" }).notNull().default(false),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
     lastLoginAt: integer("last_login_at"),
   },
   (t) => [uniqueIndex("idx_users_username").on(t.username)],
+);
+
+// ── Pending TOTP logins (intermediate step after password, before session) ────
+export const pendingTotpLogins = sqliteTable(
+  "pending_totp_logins",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: integer("expires_at").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("idx_pending_totp_token").on(t.token),
+    index("idx_pending_totp_user").on(t.userId),
+    index("idx_pending_totp_expires").on(t.expiresAt),
+  ],
+);
+
+// ── WebAuthn passkeys ─────────────────────────────────────────────────────────
+export const webauthnCredentials = sqliteTable(
+  "webauthn_credentials",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credentialId: text("credential_id").notNull().unique(),
+    webauthnUserId: text("webauthn_user_id").notNull(),
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    deviceType: text("device_type").notNull(),
+    backedUp: integer("backed_up", { mode: "boolean" }).notNull().default(false),
+    transports: text("transports"),
+    name: text("name").notNull(),
+    createdAt: integer("created_at").notNull(),
+    lastUsedAt: integer("last_used_at"),
+  },
+  (t) => [
+    uniqueIndex("idx_webauthn_credential_id").on(t.credentialId),
+    index("idx_webauthn_credentials_user").on(t.userId),
+    index("idx_webauthn_webauthn_user_id").on(t.webauthnUserId),
+  ],
+);
+
+export const webauthnChallenges = sqliteTable(
+  "webauthn_challenges",
+  {
+    id: text("id").primaryKey(),
+    challenge: text("challenge").notNull(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [index("idx_webauthn_challenges_expires").on(t.expiresAt)],
 );
 
 // ── Sessions ──────────────────────────────────────────────────────────────────

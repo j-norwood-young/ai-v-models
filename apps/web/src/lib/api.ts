@@ -406,7 +406,16 @@ export interface MetricsEvent {
 export interface User {
 	id: string;
 	username: string;
+	displayName?: string;
 	role: string;
+	mustChangePassword?: boolean;
+	totpEnabled?: boolean;
+}
+
+export interface LoginResult {
+	user: User;
+	requiresTotp?: boolean;
+	pendingToken?: string;
 }
 
 class ApiError extends Error {
@@ -586,14 +595,93 @@ export const api = {
 
 	// Auth
 	login: async (username: string, password: string) => {
-		const res = await request<{ user: User; expiresAt: number }>('/auth/login', {
+		return request<LoginResult>('/auth/login', {
 			method: 'POST',
 			json: { username, password }
+		});
+	},
+	verifyTotp: async (pendingToken: string, code: string) => {
+		const res = await request<{ user: User; expiresAt: number }>('/auth/verify-totp', {
+			method: 'POST',
+			json: { pendingToken, code }
 		});
 		return res.user;
 	},
 	logout: () => request<void>('/auth/logout', { method: 'POST' }),
 	getMe: () => request<User>('/auth/me'),
+	changePassword: (currentPassword: string, newPassword: string) =>
+		request<{ success: boolean; user: User }>('/auth/change-password', {
+			method: 'POST',
+			json: { currentPassword, newPassword }
+		}),
+	setupTotp: () =>
+		request<{ secret: string; otpauthUrl: string }>('/auth/totp/setup', { method: 'POST' }),
+	enableTotp: (secret: string, code: string) =>
+		request<{ success: boolean; totpEnabled: boolean }>('/auth/totp/enable', {
+			method: 'POST',
+			json: { secret, code }
+		}),
+	disableTotp: (code: string) =>
+		request<{ success: boolean; totpEnabled: boolean }>('/auth/totp/disable', {
+			method: 'POST',
+			json: { code }
+		}),
+	createAdminToken: (name: string, expiresInDays?: number) =>
+		request<{ id: string; name: string; prefix: string; token: string }>('/admin-tokens', {
+			method: 'POST',
+			json: { name, expiresInDays }
+		}),
+	listAdminTokens: () =>
+		request<
+			Array<{
+				id: string;
+				name: string;
+				prefix: string;
+				enabled: boolean;
+				expiresAt: number | null;
+			}>
+		>('/admin-tokens'),
+	revokeAdminToken: (id: string) =>
+		request<{ success: boolean }>(`/admin-tokens/${id}`, { method: 'DELETE' }),
+
+	// Passkeys (WebAuthn)
+	webauthnRegisterOptions: (name?: string) =>
+		request<{ options: PublicKeyCredentialCreationOptionsJSON; challengeId: string }>(
+			'/auth/webauthn/register/options',
+			{ method: 'POST', json: { name } }
+		),
+	webauthnRegisterVerify: (challengeId: string, response: unknown, name?: string) =>
+		request<{ success: boolean; name: string }>('/auth/webauthn/register/verify', {
+			method: 'POST',
+			json: { challengeId, response, name }
+		}),
+	webauthnLoginOptions: (username?: string) =>
+		request<{ options: PublicKeyCredentialRequestOptionsJSON; challengeId: string }>(
+			'/auth/webauthn/login/options',
+			{ method: 'POST', json: { username } }
+		),
+	webauthnLoginVerify: (challengeId: string, response: unknown, username?: string) =>
+		request<{ user: User; expiresAt: number }>('/auth/webauthn/login/verify', {
+			method: 'POST',
+			json: { challengeId, response, username }
+		}),
+	webauthnAvailable: (username: string) =>
+		request<{ available: boolean }>(
+			`/auth/webauthn/available?username=${encodeURIComponent(username)}`
+		),
+	listPasskeys: () =>
+		request<
+			Array<{
+				id: string;
+				name: string;
+				deviceType: string;
+				backedUp: boolean;
+				createdAt: number;
+				lastUsedAt: number | null;
+			}>
+		>('/auth/webauthn/credentials'),
+	deletePasskey: (id: string) =>
+		request<{ success: boolean }>(`/auth/webauthn/credentials/${id}`, { method: 'DELETE' }),
 
 	// Settings
 	getSettings: () => request<AppSettings>('/settings'),

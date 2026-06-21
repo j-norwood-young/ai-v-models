@@ -7,9 +7,20 @@ export interface User {
   passwordHash: string;
   role: UserRole;
   enabled: boolean;
+  mustChangePassword: boolean;
+  totpSecret: string | null;
+  totpEnabled: boolean;
   createdAt: number;
   updatedAt: number;
   lastLoginAt: number | null;
+}
+
+export interface PendingTotpLogin {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: number;
+  createdAt: number;
 }
 
 export interface Session {

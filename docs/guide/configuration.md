@@ -57,7 +57,7 @@ security:
 | `AVM_HEALTH_CHECK_INTERVAL` | `30` | Health check interval (seconds) |
 | `AVM_SESSION_SECRET` | - | Session cookie signing secret |
 | `AVM_ADMIN_USER` | `admin` | Initial admin username (first run only) |
-| `AVM_ADMIN_PASSWORD` | `changeme123` | Initial admin password (first run only) |
+| `AVM_ADMIN_PASSWORD` | `admin` | Initial admin password (first run only; must be changed on first login) |
 | `AVM_TLS_CERT` | - | Path to TLS certificate |
 | `AVM_TLS_KEY` | - | Path to TLS private key |
 | `AVM_CORS_ORIGINS` | `http://localhost:5173` | CORS allowed origins |

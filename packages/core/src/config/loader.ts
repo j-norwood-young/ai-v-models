@@ -38,6 +38,8 @@ function envToPartialConfig(): Record<string, unknown> {
     AVM_OTEL_SERVICE_NAME: ["metrics", "otelServiceName"],
     AVM_HEALTH_CHECK_INTERVAL: ["health", "checkIntervalSecs"],
     AVM_SESSION_SECRET: ["security", "sessionSecret"],
+    AVM_WEBAUTHN_RP_ID: ["security", "webauthnRpId"],
+    AVM_WEBAUTHN_ORIGINS: ["security", "webauthnOrigins"],
     AVM_DATA_DIR: ["dataDir"],
   };
 

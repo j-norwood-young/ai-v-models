@@ -51,7 +51,10 @@ describe("admin API body-less JSON requests", () => {
   async function postWithEmptyJsonBody(path: string): Promise<Response> {
     return fetch(`${proxy.url}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${proxy.adminToken}`,
+      },
     });
   }
 

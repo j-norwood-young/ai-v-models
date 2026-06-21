@@ -12,6 +12,7 @@
     "@ai-v-models/core": "workspace:*",
     "@ai-v-models/mock-backend": "workspace:*",
     "@ai-v-models/proxy": "workspace:*",
+    "@node-rs/argon2": "^2.0.0",
     "nanoid": "^5.1.5"
   },
   "devDependencies": {

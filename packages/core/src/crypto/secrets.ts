@@ -61,6 +61,16 @@ export function generateApiKey(): { key: string; prefix: string } {
   return { key, prefix };
 }
 
+/** Generate an admin API token in the format "avm-at-<random>" */
+export function generateAdminToken(): { token: string; prefix: string } {
+  const rand = randomBytes(24).toString("base64url");
+  const token = `avm-at-${rand}`;
+  const prefix = token.slice(0, 12); // "avm-at-xxxx"
+  return { token, prefix };
+}
+
+export const ADMIN_TOKEN_PREFIX = "avm-at-";
+
 /** Hash a token with SHA-256 for storage (not for passwords—use argon2 for those). */
 export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");

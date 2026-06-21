@@ -12,8 +12,10 @@ import { keysRoutes } from "./routes/api/keys.js";
 import { hooksRoutes } from "./routes/api/hooks.js";
 import { metricsApiRoutes } from "./routes/api/metrics-api.js";
 import { authRoutes } from "./routes/api/auth.js";
+import { webauthnRoutes } from "./routes/api/webauthn.js";
 import { settingsRoutes } from "./routes/api/settings.js";
 import { eventsRoutes } from "./routes/api/events.js";
+import { registerAdminAuthHook } from "./admin-auth-hook.js";
 import { registerWebUi } from "./web-ui.js";
 import { getLogger } from "./logger.js";
 
@@ -109,6 +111,8 @@ export async function createApp(ctx: AppContext) {
   await hooksRoutes(app, ctx);
   await metricsApiRoutes(app, ctx);
   await authRoutes(app, ctx);
+  await webauthnRoutes(app, ctx);
+  registerAdminAuthHook(app, ctx);
   await settingsRoutes(app, ctx);
   await eventsRoutes(app, ctx);
 

@@ -12,6 +12,8 @@
 	const { children }: Props = $props();
 
 	const isLoginPage = $derived(page.url.pathname === '/login');
+	const isChangePasswordPage = $derived(page.url.pathname === '/change-password');
+	const isPublicPage = $derived(isLoginPage || isChangePasswordPage);
 
 	let sidebarOpen = $state(false);
 
@@ -45,17 +47,21 @@
 	}
 
 	onMount(async () => {
-		if (isLoginPage) return;
+		if (isPublicPage) return;
 		const ok = await auth.checkAuth();
 		if (!ok) {
 			goto('/login');
+			return;
+		}
+		if (auth.mustChangePassword && !isChangePasswordPage) {
+			goto('/change-password');
 			return;
 		}
 		sse.connect();
 	});
 </script>
 
-{#if isLoginPage}
+{#if isPublicPage}
 	{@render children()}
 {:else}
 	<div class="flex h-screen overflow-hidden">
