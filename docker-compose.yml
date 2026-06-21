@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  proxy:
+    build: .
+    ports:
+      - "4000:4000"
+    volumes:
+      - avm-data:/data
+    environment:
+      AVM_HOST: "0.0.0.0"
+      AVM_PORT: "4000"
+      AVM_DATA_DIR: "/data"
+      AVM_LOG_LEVEL: "info"
+      AVM_LOG_FORMAT: "json"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Demo: LM Studio backend mock (for testing)
+  mock-backend:
+    build:
+      context: .
+      dockerfile: tools/mock-backend/Dockerfile
+    ports:
+      - "11434:11434"
+    environment:
+      MOCK_PORT: "11434"
+      MOCK_PROVIDER: "lmstudio"
+      MOCK_HOST_NAME: "mock-host"
+    profiles:
+      - testing
+
+volumes:
+  avm-data:

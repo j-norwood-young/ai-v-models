@@ -1,0 +1,27 @@
+{
+  "name": "@ai-v-models/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf build .svelte-kit"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.2.12",
+    "@sveltejs/kit": "^2.21.3",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "svelte": "^5.33.11",
+    "svelte-check": "^4.2.1",
+    "tailwindcss": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.8",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "layerchart": "^1.0.13",
+    "d3": "^7.9.0"
+  },
+  "type": "module"
+}

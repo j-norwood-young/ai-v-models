@@ -1,0 +1,192 @@
+<script lang="ts">
+	import { api } from '$lib/api.js';
+	import { auth } from '$lib/auth.svelte.js';
+
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let pwLoading = $state(false);
+	let pwError = $state<string | null>(null);
+	let pwSuccess = $state(false);
+
+	async function handleChangePassword(e: SubmitEvent) {
+		e.preventDefault();
+		if (newPassword !== confirmPassword) {
+			pwError = 'New passwords do not match';
+			return;
+		}
+		pwLoading = true;
+		pwError = null;
+		pwSuccess = false;
+		try {
+			// The API endpoint for changing password
+			const res = await fetch('/api/v1/auth/password', {
+				method: 'PUT',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+			});
+			if (!res.ok) {
+				const body = (await res.json()) as { error?: string };
+				throw new Error(body.error ?? `HTTP ${res.status}`);
+			}
+			pwSuccess = true;
+			currentPassword = '';
+			newPassword = '';
+			confirmPassword = '';
+		} catch (err) {
+			pwError = err instanceof Error ? err.message : 'Failed to change password';
+		} finally {
+			pwLoading = false;
+		}
+	}
+</script>
+
+<svelte:head>
+	<title>Settings — ai-v-models</title>
+</svelte:head>
+
+<div class="p-6 max-w-3xl mx-auto">
+	<div class="mb-6">
+		<h1 class="text-2xl font-bold text-gray-100">Settings</h1>
+		<p class="text-sm text-gray-400 mt-1">Admin configuration and server status</p>
+	</div>
+
+	<!-- Admin Info -->
+	{#if auth.user}
+		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+			<h2 class="text-base font-semibold text-gray-100 mb-4">Account</h2>
+			<div class="flex items-center gap-4">
+				<div class="w-12 h-12 rounded-full bg-cyan-600 flex items-center justify-center text-xl font-bold">
+					{auth.user.username.charAt(0).toUpperCase()}
+				</div>
+				<div>
+					<p class="text-gray-100 font-medium">{auth.user.username}</p>
+					<p class="text-sm text-gray-400">{auth.user.role}</p>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Change Password -->
+	<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+		<h2 class="text-base font-semibold text-gray-100 mb-4">Change Password</h2>
+		<form onsubmit={handleChangePassword} class="space-y-4 max-w-sm">
+			<div>
+				<label class="block text-xs font-medium text-gray-400 mb-1">Current Password</label>
+				<input
+					type="password"
+					bind:value={currentPassword}
+					required
+					autocomplete="current-password"
+					class="input w-full"
+				/>
+			</div>
+			<div>
+				<label class="block text-xs font-medium text-gray-400 mb-1">New Password</label>
+				<input
+					type="password"
+					bind:value={newPassword}
+					required
+					autocomplete="new-password"
+					minlength={8}
+					class="input w-full"
+				/>
+			</div>
+			<div>
+				<label class="block text-xs font-medium text-gray-400 mb-1">Confirm New Password</label>
+				<input
+					type="password"
+					bind:value={confirmPassword}
+					required
+					autocomplete="new-password"
+					class="input w-full"
+				/>
+			</div>
+
+			{#if pwError}
+				<div class="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
+					{pwError}
+				</div>
+			{/if}
+			{#if pwSuccess}
+				<div class="text-sm text-green-400 bg-green-900/20 border border-green-800 rounded-lg px-3 py-2">
+					Password changed successfully.
+				</div>
+			{/if}
+
+			<button
+				type="submit"
+				disabled={pwLoading}
+				class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-cyan-800 text-white font-medium rounded-lg text-sm transition-colors"
+			>
+				{pwLoading ? 'Changing…' : 'Change Password'}
+			</button>
+		</form>
+	</div>
+
+	<!-- Server Links -->
+	<div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+		<h2 class="text-base font-semibold text-gray-100 mb-4">Server</h2>
+		<div class="space-y-3">
+			<div class="flex items-center justify-between py-2 border-b border-gray-800">
+				<div>
+					<p class="text-sm text-gray-200">Prometheus Metrics</p>
+					<p class="text-xs text-gray-500">Raw Prometheus-format metrics</p>
+				</div>
+				<a
+					href="/metrics"
+					target="_blank"
+					class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+				>
+					Open →
+				</a>
+			</div>
+			<div class="flex items-center justify-between py-2 border-b border-gray-800">
+				<div>
+					<p class="text-sm text-gray-200">Health Check</p>
+					<p class="text-xs text-gray-500">Server liveness endpoint</p>
+				</div>
+				<a
+					href="/api/v1/health"
+					target="_blank"
+					class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+				>
+					Open →
+				</a>
+			</div>
+			<div class="flex items-center justify-between py-2">
+				<div>
+					<p class="text-sm text-gray-200">API Documentation</p>
+					<p class="text-xs text-gray-500">OpenAPI/Swagger spec</p>
+				</div>
+				<a
+					href="/api/docs"
+					target="_blank"
+					class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+				>
+					Open →
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.input {
+		background: #1f2937;
+		border: 1px solid #374151;
+		border-radius: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		color: #f3f4f6;
+		font-size: 0.875rem;
+		outline: none;
+		transition: border-color 0.15s;
+	}
+	.input:focus {
+		border-color: #06b6d4;
+	}
+	.input::placeholder {
+		color: #6b7280;
+	}
+</style>

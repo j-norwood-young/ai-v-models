@@ -1,0 +1,22 @@
+{
+  "name": "@ai-v-models/e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf coverage"
+  },
+  "dependencies": {
+    "@ai-v-models/core": "workspace:*",
+    "@ai-v-models/mock-backend": "workspace:*",
+    "@ai-v-models/proxy": "workspace:*",
+    "nanoid": "^5.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
+  }
+}
