@@ -2,19 +2,61 @@
 
 Modern streaming reverse proxy for OpenAI-compatible LLMs. Built for homelab users and sysadmins who need to manage access to multiple LLM backends across different machines.
 
-Like HAProxy or Nginx, but purpose-built for LLMs — with virtual models, key management, load balancing, hooks, and a full admin UI.
+Like HAProxy or Nginx, but purpose-built for LLMs — with virtual models, key management, load balancing, hooks, plugins, and a full admin UI.
 
 ![AiVM dashboard showing 24-hour request metrics, backend health, and request volume chart](screenshots/dashboard.png)
 
 ## Features
 
 - **Streaming proxy** — Full SSE pass-through with token counting, TTFT tracking, and TPS metrics
-- **Virtual models (v-models)** — User-facing aliases that map to one or more backends
-- **Key management** — Rate limits, token budgets, model scopes, and per-key audit logs
-- **Load balancing & HA** — Session pinning, round-robin, weighted, and automatic failover with health checks
-- **Hooks** — Pre-request mutation and post-completion callbacks (internal or webhook)
-- **Admin UI** — Dashboards, backend management, keys, plugins, and real-time monitoring
-- **Observability** — Prometheus metrics, OpenTelemetry OTLP export, and structured logging
+- **Virtual models (v-models)** — User-facing aliases that map to one or more backends with configurable load-balancing strategies
+- **Key management** — Create, scope, rate-limit, and audit API keys with per-key usage logs
+- **Load balancing & HA** — Session pinning, round-robin, weighted, and automatic failover with health checks and circuit breakers
+- **Plugins** — Sandboxed request/response transformers you install from npm or GitHub (e.g. system-prompt injection, vLLM compatibility fixes)
+- **Hooks** — Pre-request mutation and post-completion callbacks (internal worker threads or external webhooks)
+- **Web admin UI** — Built-in SvelteKit dashboard for everything: backends, v-models, keys, plugins, live logs, and metrics — served from the same port as the API
+- **CLI (`aivm`)** — Full management from the terminal for scripting and automation
+- **Observability** — Prometheus metrics, OpenTelemetry OTLP export, structured logging, and real-time SSE dashboards
+
+## Web admin UI
+
+AiVM ships with a polished dark-mode admin interface — no separate deployment required. In production it is served at `/` on the proxy port; in development it runs on `:5173` with the API proxied behind it.
+
+Log in with the default admin account on first run (`admin` / `changeme123` — change this immediately in **Settings**). The UI also supports TOTP 2FA, WebAuthn passkeys, and admin API tokens for automation.
+
+### Backends
+
+Add, test, and monitor LLM upstreams from the UI or CLI. Health status and latency are shown at a glance.
+
+![Backends page listing configured LLM connections with health and latency](screenshots/backends.png)
+
+### Virtual models
+
+Define user-facing model aliases (`smart-chat`, `fast-summarizer`, …) that route to one or more backends. Choose balancing strategies, streaming behaviour, and per-backend weights without exposing internal model IDs to clients.
+
+![Virtual models page showing model aliases routed to backend pools](screenshots/virtual-models.png)
+
+### API keys
+
+Issue keys with optional rate limits, token budgets, model scopes, and expiry. Reveal keys once at creation, then browse per-key request logs from the UI.
+
+![API keys page with active keys, usage dates, and management actions](screenshots/api-keys.png)
+
+### Plugins
+
+Install sandboxed TypeScript plugins that transform requests and responses at the edge — no filesystem or network access inside the isolate. Bind plugins globally or to specific v-models. Example plugins in the repo include pirate-speak injection, token compression, and vLLM system-prompt fixes.
+
+![Plugins page listing installed sandboxed request transformers](screenshots/plugins.png)
+
+Author your own with the [`@ai-v-models/plugin-sdk`](packages/plugin-sdk/) — see [Plugin Authoring](docs/guide/plugin-authoring.md).
+
+### Live logs & metrics
+
+Watch requests stream in real time with key, model, status, token count, and duration. The metrics page adds charts for requests and tokens over time, error rates, TTFT, TPS, and backend health — with a link through to Prometheus.
+
+![Live logs page showing a real-time stream of API requests](screenshots/live-logs.png)
+
+![Metrics page with request and token charts plus backend health](screenshots/metrics.png)
 
 ## Supported providers
 
@@ -55,6 +97,8 @@ docker compose up
 Runs on port 4000 with data in a Docker volume. See [docs/guide/docker.md](docs/guide/docker.md) for details.
 
 ## Usage
+
+Everything below can also be done from the web admin UI.
 
 ### Add a backend
 
@@ -115,9 +159,11 @@ Full docs live in [docs/](docs/):
 
 - [Introduction](docs/guide/introduction.md)
 - [Quick start](docs/guide/quickstart.md)
+- [Web UI](docs/guide/web-ui.md)
 - [Configuration](docs/guide/configuration.md)
 - [CLI reference](docs/guide/cli.md)
 - [Virtual models](docs/guide/vmodels.md)
+- [Plugins](docs/guide/plugin-authoring.md)
 - [Hooks](docs/guide/hooks.md)
 - [Docker](docs/guide/docker.md)
 - [Kubernetes](docs/guide/kubernetes.md)
@@ -150,6 +196,7 @@ packages/cli/      aivm CLI
 packages/hooks-sdk/  Hook authoring SDK
 packages/plugin-sdk/ Plugin authoring SDK
 docs/              VitePress documentation
+examples/plugins/  Example sandboxed plugins
 ```
 
 ## License
