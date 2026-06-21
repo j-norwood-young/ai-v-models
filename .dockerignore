@@ -1,0 +1,9 @@
+node_modules
+.git
+**/.turbo
+**/dist
+**/.svelte-kit
+apps/web/build
+docs/.vitepress/dist
+.env
+*.log

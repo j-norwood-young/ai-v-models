@@ -9,6 +9,7 @@ import {
 } from "@ai-v-models/core";
 import { createLogger } from "./logger.js";
 import { createApp } from "./app.js";
+import { printStartupBanner, resolvePublicBaseUrl } from "./startup-banner.js";
 import { KeyAuthenticator } from "./key-auth.js";
 import { BackendBalancer } from "./balancer.js";
 import { HealthMonitor } from "./health.js";
@@ -23,7 +24,7 @@ const dataDir = config.dataDir ?? defaultDataDir();
 ensureDataDir(dataDir);
 
 const log = createLogger(config.log, dataDir);
-log.info({ dataDir }, "Starting ai-v-models proxy");
+log.info({ dataDir }, "Starting AiVM proxy");
 
 // Database
 const dbPath = join(dataDir, "data.db");
@@ -69,7 +70,16 @@ const healthMonitor = new HealthMonitor(
   config.health.timeoutMs,
   ctx.sse,
 );
-healthMonitor.start();
+await healthMonitor.start();
+
+function flushLogs(log: ReturnType<typeof createLogger>): Promise<void> {
+  return new Promise((resolve) => log.flush(() => resolve()));
+}
+
+/** Allow async pino writes to land before printing the ASCII banner. */
+function waitForLogDrain(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 75));
+}
 
 // Build and start server
 const app = await createApp(ctx);
@@ -77,7 +87,11 @@ const app = await createApp(ctx);
 const { host, port } = config.server;
 await app.listen({ host, port });
 
-log.info({ host, port }, `ai-v-models listening on http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
+const publicUrl = resolvePublicBaseUrl(config);
+log.info({ host, port, publicUrl }, `AiVM listening on ${publicUrl}`);
+await flushLogs(log);
+await waitForLogDrain();
+await printStartupBanner({ config, db, dataDir });
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {

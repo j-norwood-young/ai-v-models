@@ -11,6 +11,7 @@
 		type BackendHealthSnapshot
 	} from '$lib/backend-health.js';
 	import HealthIndicator from '$lib/components/HealthIndicator.svelte';
+	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
 
 	interface Props {
 		children: import('svelte').Snippet;
@@ -21,6 +22,7 @@
 	const isChangePasswordPage = $derived(page.url.pathname === '/change-password');
 	const isPublicPage = $derived(isLoginPage || isChangePasswordPage);
 
+	let booting = $state(true);
 	let sidebarOpen = $state(false);
 		let backendHealth = $state<BackendHealthSnapshot>({
 		level: 'gray',
@@ -133,19 +135,26 @@
 	}
 
 	onMount(async () => {
-		if (isPublicPage) return;
-		const ok = await auth.checkAuth();
-		if (!ok) {
-			goto('/login');
+		if (isPublicPage) {
+			booting = false;
 			return;
 		}
-		if (auth.mustChangePassword && !isChangePasswordPage) {
-			goto('/change-password');
-			return;
+		try {
+			const ok = await auth.checkAuth();
+			if (!ok) {
+				goto('/login');
+				return;
+			}
+			if (auth.mustChangePassword && !isChangePasswordPage) {
+				goto('/change-password');
+				return;
+			}
+			sidebarOpen = false;
+			sse.connect();
+			void loadBackendHealth();
+		} finally {
+			booting = false;
 		}
-		sidebarOpen = false;
-		sse.connect();
-		void loadBackendHealth();
 	});
 
 	$effect(() => {
@@ -164,6 +173,8 @@
 
 {#if isPublicPage}
 	{@render children()}
+{:else if booting}
+	<LoadingScreen message="Connecting to AiVM…" />
 {:else}
 	<div class="flex h-screen overflow-hidden">
 		<!-- Mobile header -->

@@ -64,9 +64,14 @@ export class HealthMonitor {
     private readonly sse?: SseEmitter,
   ) {}
 
-  start(): void {
-    this.runChecks();
-    this.timer = setInterval(() => this.runChecks(), this.intervalSecs * 1000);
+  async start(): Promise<void> {
+    await this.runChecks();
+    this.timer = setInterval(() => void this.runChecks(), this.intervalSecs * 1000);
+  }
+
+  /** Run health checks immediately (e.g. before startup banner). */
+  async runNow(): Promise<void> {
+    await this.runChecks();
   }
 
   stop(): void {
