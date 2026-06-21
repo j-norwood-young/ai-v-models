@@ -4,6 +4,8 @@ Modern streaming reverse proxy for OpenAI-compatible LLMs. Built for homelab use
 
 Like HAProxy or Nginx, but purpose-built for LLMs — with virtual models, key management, load balancing, hooks, and a full admin UI.
 
+![AiVM dashboard showing 24-hour request metrics, backend health, and request volume chart](screenshots/dashboard.png)
+
 ## Features
 
 - **Streaming proxy** — Full SSE pass-through with token counting, TTFT tracking, and TPS metrics
