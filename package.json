@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "Modern streaming reverse proxy for OpenAI-compatible LLMs",
+  "license": "MIT",
   "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=22.0.0",

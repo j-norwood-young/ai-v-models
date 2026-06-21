@@ -149,3 +149,7 @@ packages/hooks-sdk/  Hook authoring SDK
 packages/plugin-sdk/ Plugin authoring SDK
 docs/              VitePress documentation
 ```
+
+## License
+
+[MIT](LICENSE)
