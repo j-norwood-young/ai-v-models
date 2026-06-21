@@ -55,7 +55,8 @@ export function registerKeyCommands(program: Command, getClient: () => ApiClient
     .description("Create a new API key")
     .requiredOption("--name <name>", "Key name/label")
     .option("--expires-in <days>", "Expiry in days")
-    .option("--models <models>", "Allowed models (comma-separated, default: all)")
+    .option("--models <models>", "Allowed v-models (comma-separated, default: all)")
+    .option("--backends <backends>", "Allowed pass-through backends by ID (comma-separated, default: all)")
     .option("--rpm <rpm>", "Rate limit requests per minute")
     .option("--day-budget <tokens>", "Daily token budget")
     .option("--no-tools", "Disable tool calling")
@@ -70,6 +71,9 @@ export function registerKeyCommands(program: Command, getClient: () => ApiClient
       }
       if (opts.models) {
         body["allowedModels"] = opts.models.split(",").map((m: string) => m.trim());
+      }
+      if (opts.backends) {
+        body["allowedBackends"] = opts.backends.split(",").map((b: string) => b.trim());
       }
       if (opts.rpm) body["rateLimitRpm"] = parseInt(opts.rpm, 10);
       if (opts.dayBudget) body["tokenBudgetDay"] = parseInt(opts.dayBudget, 10);

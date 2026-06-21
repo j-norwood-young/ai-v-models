@@ -96,12 +96,15 @@ export const apiKeys = sqliteTable(
     id: text("id").primaryKey(),
     prefix: text("prefix").notNull(),
     keyHash: text("key_hash").notNull().unique(),
+    /** AES-256-GCM encrypted full key; null when show-once mode or legacy keys */
+    encryptedKey: text("encrypted_key"),
     name: text("name").notNull(),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     suspended: integer("suspended", { mode: "boolean" }).notNull().default(false),
     suspendedReason: text("suspended_reason"),
     expiresAt: integer("expires_at"),
-    allowedModels: text("allowed_models"), // JSON array or null for all
+    allowedModels: text("allowed_models"), // JSON v-model IDs or null for all
+    allowedBackends: text("allowed_backends"), // JSON backend IDs or null for all pass-through
     allowToolCalling: integer("allow_tool_calling", { mode: "boolean" }).notNull().default(true),
     allowVision: integer("allow_vision", { mode: "boolean" }).notNull().default(false),
     allowEmbeddings: integer("allow_embeddings", { mode: "boolean" }).notNull().default(false),
@@ -121,6 +124,13 @@ export const apiKeys = sqliteTable(
     index("idx_api_keys_enabled").on(t.enabled),
   ],
 );
+
+// ── App Settings ──────────────────────────────────────────────────────────────
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
 
 // ── Usage Events ──────────────────────────────────────────────────────────────
 export const usageEvents = sqliteTable(

@@ -42,3 +42,31 @@ body {
 ::-webkit-scrollbar-thumb:hover {
 	background: #4b5563;
 }
+
+.input {
+	background: var(--color-surface-3);
+	border: 1px solid var(--color-border);
+	border-radius: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	color: #f3f4f6;
+	font-size: 0.875rem;
+	outline: none;
+	transition: border-color 0.15s;
+}
+
+.input:focus {
+	border-color: var(--color-brand);
+}
+
+.input::placeholder {
+	color: #6b7280;
+}
+
+.checkbox {
+	width: 1rem;
+	height: 1rem;
+	border-radius: 0.25rem;
+	border: 1px solid #4b5563;
+	background: var(--color-surface-3);
+	accent-color: var(--color-brand);
+}

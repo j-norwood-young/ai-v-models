@@ -4,14 +4,18 @@ export interface ApiKey {
   prefix: string;
   /** Argon2 hash of the full key */
   keyHash: string;
+  /** AES-256-GCM encrypted full key; null when show-once mode or legacy keys */
+  encryptedKey: string | null;
   name: string;
   enabled: boolean;
   suspended: boolean;
   suspendedReason: string | null;
   /** Unix timestamp ms; null = never expires */
   expiresAt: number | null;
-  /** JSON-encoded string array, or null for all models */
+  /** JSON-encoded v-model IDs, or null for all v-models */
   allowedModels: string | null;
+  /** JSON-encoded backend IDs for pass-through, or null for all backends */
+  allowedBackends: string | null;
   allowToolCalling: boolean;
   allowVision: boolean;
   allowEmbeddings: boolean;

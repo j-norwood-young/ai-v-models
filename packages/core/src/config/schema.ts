@@ -7,7 +7,7 @@ export const ServerConfigSchema = z.object({
   tlsKey: z.string().optional(),
   corsOrigins: z
     .union([z.string(), z.array(z.string())])
-    .default("http://localhost:5173")
+    .default("http://localhost:5173,http://127.0.0.1:5173")
     .transform((v) => (Array.isArray(v) ? v : v.split(",").map((s) => s.trim()))),
 });
 

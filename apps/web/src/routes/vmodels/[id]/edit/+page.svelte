@@ -1,0 +1,240 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { api } from '$lib/api.js';
+	import type { Backend, VModel } from '$lib/api.js';
+	import PageHeader from '$lib/components/PageHeader.svelte';
+
+	const id = $derived(page.params.id!);
+
+	let vmodel = $state<VModel | null>(null);
+	let backends = $state<Backend[]>([]);
+	let loading = $state(true);
+	let saving = $state(false);
+	let error = $state<string | null>(null);
+	let saveError = $state<string | null>(null);
+
+	let displayName = $state('');
+	let strategy = $state<VModel['strategy']>('session-pin');
+	let streaming = $state(true);
+	let enabled = $state(true);
+
+	let addBackendId = $state('');
+	let addBackendLoading = $state(false);
+
+	async function load() {
+		loading = true;
+		error = null;
+		try {
+			[vmodel, backends] = await Promise.all([api.getVModel(id), api.getBackends()]);
+			displayName = vmodel.display_name;
+			strategy = vmodel.strategy;
+			streaming = vmodel.streaming;
+			enabled = vmodel.enabled;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load virtual model';
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		saving = true;
+		saveError = null;
+		try {
+			await api.updateVModel(id, { display_name: displayName, strategy, streaming, enabled });
+			goto('/vmodels');
+		} catch (err) {
+			saveError = err instanceof Error ? err.message : 'Failed to update virtual model';
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function handleAddBackend() {
+		if (!addBackendId || !vmodel) return;
+		addBackendLoading = true;
+		try {
+			await api.addVModelBackend(id, {
+				backend_id: addBackendId,
+				backend_model_id: vmodel.model_id
+			});
+			vmodel = await api.getVModel(id);
+			addBackendId = '';
+		} catch (err) {
+			saveError = err instanceof Error ? err.message : 'Failed to add backend';
+		} finally {
+			addBackendLoading = false;
+		}
+	}
+
+	async function handleRemoveBackend(backendMappingId: string) {
+		try {
+			await api.removeVModelBackend(id, backendMappingId);
+			if (vmodel) {
+				vmodel = {
+					...vmodel,
+					backends: vmodel.backends.filter((b) => b.id !== backendMappingId)
+				};
+			}
+		} catch (err) {
+			saveError = err instanceof Error ? err.message : 'Failed to remove backend';
+		}
+	}
+
+	function backendName(backendId: string): string {
+		return backends.find((b) => b.id === backendId)?.name ?? backendId;
+	}
+
+	onMount(load);
+</script>
+
+<svelte:head>
+	<title>Edit Virtual Model — ai-v-models</title>
+</svelte:head>
+
+<div class="p-6 max-w-3xl mx-auto">
+	<PageHeader
+		title="Edit Virtual Model"
+		subtitle={vmodel?.model_id ?? ''}
+		parentHref="/vmodels"
+		parentLabel="Virtual Models"
+	/>
+
+	{#if error}
+		<div class="rounded-lg bg-red-900/30 border border-red-800 px-4 py-3 text-red-400 text-sm mb-4">
+			{error}
+		</div>
+	{:else if loading}
+		<div class="flex items-center justify-center py-20 text-gray-500">Loading…</div>
+	{:else if vmodel}
+		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-6">
+			<form onsubmit={handleSubmit} class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<div>
+					<label class="block text-xs font-medium text-gray-400 mb-1">Model ID</label>
+					<input value={vmodel.model_id} disabled class="input w-full opacity-60 cursor-not-allowed font-mono" />
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-gray-400 mb-1">Display Name</label>
+					<input bind:value={displayName} required class="input w-full" />
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-gray-400 mb-1">Strategy</label>
+					<select bind:value={strategy} class="input w-full">
+						<option value="session-pin">Session Pin</option>
+						<option value="round-robin">Round Robin</option>
+						<option value="weighted">Weighted</option>
+						<option value="least-connections">Least Connections</option>
+						<option value="least-latency">Least Latency</option>
+					</select>
+				</div>
+				<div class="flex items-center gap-6 pt-5">
+					<div class="flex items-center gap-3">
+						<button
+							type="button"
+							onclick={() => (streaming = !streaming)}
+							class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors"
+							class:bg-cyan-500={streaming}
+							class:bg-gray-700={!streaming}
+							role="switch"
+							aria-checked={streaming}
+						>
+							<span
+								class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+								class:translate-x-4={streaming}
+								class:translate-x-0={!streaming}
+							></span>
+						</button>
+						<span class="text-sm text-gray-300">Streaming</span>
+					</div>
+					<div class="flex items-center gap-3">
+						<button
+							type="button"
+							onclick={() => (enabled = !enabled)}
+							class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors"
+							class:bg-cyan-500={enabled}
+							class:bg-gray-700={!enabled}
+							role="switch"
+							aria-checked={enabled}
+						>
+							<span
+								class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+								class:translate-x-4={enabled}
+								class:translate-x-0={!enabled}
+							></span>
+						</button>
+						<span class="text-sm text-gray-300">Enabled</span>
+					</div>
+				</div>
+
+				{#if saveError}
+					<div class="sm:col-span-2 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
+						{saveError}
+					</div>
+				{/if}
+
+				<div class="sm:col-span-2 flex gap-3">
+					<button
+						type="submit"
+						disabled={saving}
+						class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-cyan-800 text-white font-medium rounded-lg text-sm transition-colors"
+					>
+						{saving ? 'Saving…' : 'Save Changes'}
+					</button>
+					<a
+						href="/vmodels"
+						class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-lg text-sm transition-colors"
+					>
+						Cancel
+					</a>
+				</div>
+			</form>
+
+			<div class="border-t border-gray-800 pt-6">
+				<h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Backend Mappings</h2>
+				{#if vmodel.backends.length === 0}
+					<p class="text-sm text-gray-500 mb-3">No backends assigned.</p>
+				{:else}
+					<div class="space-y-1.5 mb-4">
+						{#each vmodel.backends as b (b.id)}
+							<div class="flex items-center gap-3 bg-gray-800/50 rounded-lg px-3 py-2">
+								<span class="text-sm text-gray-200 flex-1">{backendName(b.backend_id)}</span>
+								<span class="text-xs text-gray-500 font-mono">{b.backend_model_id}</span>
+								{#if b.weight != null}
+									<span class="text-xs text-gray-500">weight: {b.weight}</span>
+								{/if}
+								<button
+									type="button"
+									onclick={() => handleRemoveBackend(b.id)}
+									class="text-xs text-gray-500 hover:text-red-400 transition-colors"
+								>
+									Remove
+								</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+				<div class="flex gap-2">
+					<select bind:value={addBackendId} class="input flex-1 text-xs">
+						<option value="">Select backend…</option>
+						{#each backends as b (b.id)}
+							{#if !vmodel.backends.some((vb) => vb.backend_id === b.id)}
+								<option value={b.id}>{b.name}</option>
+							{/if}
+						{/each}
+					</select>
+					<button
+						type="button"
+						onclick={handleAddBackend}
+						disabled={!addBackendId || addBackendLoading}
+						class="px-3 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:bg-cyan-800 text-white rounded-md transition-colors"
+					>
+						Add
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+</div>

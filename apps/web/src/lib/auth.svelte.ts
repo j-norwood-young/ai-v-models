@@ -13,7 +13,14 @@ function createAuthStore() {
 			user = await api.login(username, password);
 			return true;
 		} catch (err) {
-			error = err instanceof ApiError ? err.message : 'Login failed';
+			if (err instanceof ApiError) {
+				error = err.message;
+			} else if (err instanceof TypeError) {
+				error =
+					'Cannot reach the API. Run `pnpm dev` (API on :4001, UI on :5173) or `pnpm start` (everything on :4000).';
+			} else {
+				error = 'Login failed';
+			}
 			return false;
 		} finally {
 			loading = false;

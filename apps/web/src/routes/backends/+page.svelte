@@ -2,22 +2,13 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import type { Backend } from '$lib/api.js';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 
 	let backends = $state<Backend[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let showAddForm = $state(false);
 	let testResults = $state<Record<string, { success: boolean; latency_ms?: number; error?: string; loading: boolean }>>({});
 	let deleteConfirm = $state<string | null>(null);
-
-	// Add form state
-	let newName = $state('');
-	let newProvider = $state('openai');
-	let newHost = $state('');
-	let newUrl = $state('');
-	let newApiKey = $state('');
-	let addError = $state<string | null>(null);
-	let addLoading = $state(false);
 
 	async function load() {
 		try {
@@ -29,46 +20,22 @@
 		}
 	}
 
-	async function handleAdd(e: SubmitEvent) {
-		e.preventDefault();
-		addLoading = true;
-		addError = null;
-		try {
-			const b = await api.addBackend({
-				name: newName,
-				provider: newProvider,
-				host: newHost,
-				url: newUrl,
-				api_key: newApiKey || undefined
-			});
-			backends = [...backends, b];
-			showAddForm = false;
-			newName = '';
-			newProvider = 'openai';
-			newHost = '';
-			newUrl = '';
-			newApiKey = '';
-		} catch (err) {
-			addError = err instanceof Error ? err.message : 'Failed to add backend';
-		} finally {
-			addLoading = false;
-		}
-	}
-
-	async function toggleEnabled(backend: Backend) {
-		try {
-			const updated = await api.updateBackend(backend.id, { enabled: !backend.enabled });
-			backends = backends.map((b) => (b.id === backend.id ? updated : b));
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to update backend';
-		}
-	}
-
 	async function testBackend(id: string) {
 		testResults = { ...testResults, [id]: { success: false, loading: true } };
 		try {
 			const result = await api.testBackend(id);
 			testResults = { ...testResults, [id]: { ...result, loading: false } };
+			if (result.health) {
+				backends = backends.map((b) =>
+					b.id === id
+						? {
+								...b,
+								health: result.health!,
+								latency_ms: result.latency_ms ?? b.latency_ms
+							}
+						: b
+				);
+			}
 		} catch (err) {
 			testResults = {
 				...testResults,
@@ -104,74 +71,16 @@
 </svelte:head>
 
 <div class="p-6 max-w-7xl mx-auto">
-	<div class="flex items-center justify-between mb-6">
-		<div>
-			<h1 class="text-2xl font-bold text-gray-100">Backends</h1>
-			<p class="text-sm text-gray-400 mt-1">Manage LLM backend connections</p>
-		</div>
-		<button
-			onclick={() => (showAddForm = !showAddForm)}
-			class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-medium rounded-lg text-sm transition-colors"
-		>
-			+ Add Backend
-		</button>
-	</div>
-
-	{#if showAddForm}
-		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-			<h2 class="text-base font-semibold text-gray-100 mb-4">New Backend</h2>
-			<form onsubmit={handleAdd} class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Name *</label>
-					<input bind:value={newName} required placeholder="my-backend" class="input w-full" />
-				</div>
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Provider *</label>
-					<select bind:value={newProvider} class="input w-full">
-						<option value="openai">OpenAI</option>
-						<option value="anthropic">Anthropic</option>
-						<option value="ollama">Ollama</option>
-						<option value="other">Other</option>
-					</select>
-				</div>
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Host *</label>
-					<input bind:value={newHost} required placeholder="api.openai.com" class="input w-full" />
-				</div>
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Base URL *</label>
-					<input bind:value={newUrl} required placeholder="https://api.openai.com/v1" class="input w-full" />
-				</div>
-				<div class="sm:col-span-2">
-					<label class="block text-xs font-medium text-gray-400 mb-1">API Key</label>
-					<input bind:value={newApiKey} type="password" placeholder="sk-…" class="input w-full" />
-				</div>
-
-				{#if addError}
-					<div class="sm:col-span-2 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
-						{addError}
-					</div>
-				{/if}
-
-				<div class="sm:col-span-2 flex gap-3">
-					<button
-						type="submit"
-						disabled={addLoading}
-						class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-cyan-800 text-white font-medium rounded-lg text-sm transition-colors"
-					>
-						{addLoading ? 'Adding…' : 'Add Backend'}
-					</button>
-					<button
-						type="button"
-						onclick={() => (showAddForm = false)}
-						class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-lg text-sm transition-colors"
-					>
-						Cancel
-					</button>
-				</div>
-			</form>
-		</div>
-	{/if}
+	<PageHeader title="Backends" subtitle="Manage LLM backend connections">
+		{#snippet actions()}
+			<a
+				href="/backends/new"
+				class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-medium rounded-lg text-sm transition-colors"
+			>
+				+ Add Backend
+			</a>
+		{/snippet}
+	</PageHeader>
 
 	{#if error}
 		<div class="rounded-lg bg-red-900/30 border border-red-800 px-4 py-3 text-red-400 text-sm mb-4">
@@ -184,7 +93,8 @@
 	{:else if backends.length === 0}
 		<div class="text-center py-16 text-gray-500">
 			<p class="text-lg mb-2">No backends configured</p>
-			<p class="text-sm">Add your first backend to get started.</p>
+			<p class="text-sm mb-4">Add your first backend to get started.</p>
+			<a href="/backends/new" class="text-cyan-400 hover:text-cyan-300 text-sm">Add Backend →</a>
 		</div>
 	{:else}
 		<div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -215,20 +125,9 @@
 								{backend.latency_ms != null ? `${backend.latency_ms}ms` : '—'}
 							</td>
 							<td class="px-4 py-3">
-								<button
-									onclick={() => toggleEnabled(backend)}
-									class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors"
-									class:bg-cyan-500={backend.enabled}
-									class:bg-gray-700={!backend.enabled}
-									role="switch"
-									aria-checked={backend.enabled}
-								>
-									<span
-										class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-										class:translate-x-4={backend.enabled}
-										class:translate-x-0={!backend.enabled}
-									></span>
-								</button>
+								<span class="px-2 py-0.5 rounded-full text-xs border {backend.enabled ? 'bg-green-500/20 text-green-400 border-green-800' : 'bg-gray-700/40 text-gray-500 border-gray-700'}">
+									{backend.enabled ? 'Yes' : 'No'}
+								</span>
 							</td>
 							<td class="px-4 py-3 text-right">
 								<div class="flex items-center justify-end gap-2">
@@ -248,6 +147,12 @@
 									>
 										Test
 									</button>
+									<a
+										href="/backends/{backend.id}/edit"
+										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
+									>
+										Edit
+									</a>
 									{#if deleteConfirm === backend.id}
 										<button
 											onclick={() => handleDelete(backend.id)}
@@ -278,22 +183,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.input {
-		background: #1f2937;
-		border: 1px solid #374151;
-		border-radius: 0.5rem;
-		padding: 0.5rem 0.75rem;
-		color: #f3f4f6;
-		font-size: 0.875rem;
-		outline: none;
-		transition: border-color 0.15s;
-	}
-	.input:focus {
-		border-color: #06b6d4;
-	}
-	.input::placeholder {
-		color: #6b7280;
-	}
-</style>

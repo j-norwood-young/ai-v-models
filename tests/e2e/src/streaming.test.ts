@@ -79,6 +79,11 @@ describe("Streaming proxy", () => {
     await proxy.stop();
   });
 
+  it("should return 401 for /v1/models without auth", async () => {
+    const res = await fetch(`${proxy.url}/v1/models`);
+    expect(res.status).toBe(401);
+  });
+
   it("should return models from /v1/models including namespaced backend models", async () => {
     const res = await fetch(`${proxy.url}/v1/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -277,7 +282,10 @@ describe("V-model routing", () => {
   });
 
   it("should include v-model in /v1/models list", async () => {
-    const res = await fetch(`${proxy.url}/v1/models`);
+    const res = await fetch(`${proxy.url}/v1/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    expect(res.status).toBe(200);
     const data = await res.json() as { data: Array<{ id: string }> };
     const modelIds = data.data.map((m) => m.id);
     expect(modelIds).toContain("smart-chat");

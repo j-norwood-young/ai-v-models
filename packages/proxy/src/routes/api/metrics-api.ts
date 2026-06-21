@@ -1,15 +1,17 @@
 import type { FastifyInstance } from "fastify";
 import { eq, desc, gte, and } from "drizzle-orm";
-import { usageRollups, usageEvents } from "@ai-v-models/core";
+import { usageRollups, usageEvents, backends as backendsTable, apiKeys, vmodels } from "@ai-v-models/core";
 import { registry } from "../../metrics.js";
 import type { AppContext } from "../../context.js";
 
 export async function metricsApiRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
-  // Prometheus metrics endpoint
-  app.get("/metrics", async (_req, reply) => {
-    const metrics = await registry.metrics();
-    return reply.header("Content-Type", registry.contentType).send(metrics);
-  });
+  // Prometheus metrics endpoint (standard scrape path)
+  if (ctx.config.metrics.enabled) {
+    app.get("/metrics", async (_req, reply) => {
+      const metrics = await registry.metrics();
+      return reply.header("Content-Type", registry.contentType).send(metrics);
+    });
+  }
 
   // Global stats summary
   app.get("/api/v1/metrics/summary", async () => {
@@ -23,12 +25,30 @@ export async function metricsApiRoutes(app: FastifyInstance, ctx: AppContext): P
     const totalRequests = events.length;
     const totalTokens = events.reduce((s, e) => s + e.totalTokens, 0);
     const errorRate = totalRequests > 0 ? events.filter((e) => e.statusCode >= 400).length / totalRequests : 0;
-    const avgTtft = events.filter((e) => e.ttftMs !== null).reduce((s, e) => s + (e.ttftMs ?? 0), 0) /
-      Math.max(1, events.filter((e) => e.ttftMs !== null).length);
-    const avgTps = events.filter((e) => e.tps !== null).reduce((s, e) => s + (e.tps ?? 0), 0) /
-      Math.max(1, events.filter((e) => e.tps !== null).length);
+    const ttftEvents = events.filter((e) => e.ttftMs !== null);
+    const tpsEvents = events.filter((e) => e.tps !== null);
+    const avgTtft =
+      ttftEvents.length > 0
+        ? ttftEvents.reduce((s, e) => s + (e.ttftMs ?? 0), 0) / ttftEvents.length
+        : undefined;
+    const avgTps =
+      tpsEvents.length > 0 ? tpsEvents.reduce((s, e) => s + (e.tps ?? 0), 0) / tpsEvents.length : undefined;
 
-    return { totalRequests, totalTokens, errorRate, avgTtftMs: avgTtft, avgTps };
+    const backendRows = await ctx.db.db.select().from(backendsTable).all();
+
+    return {
+      total_requests_24h: totalRequests,
+      total_tokens_24h: totalTokens,
+      error_rate_24h: errorRate,
+      avg_ttft_ms: avgTtft,
+      avg_tps: avgTps,
+      backends: backendRows.map((b) => ({
+        id: b.id,
+        name: b.displayName || b.name,
+        health: (b.lastHealthStatus ?? "unknown") as "healthy" | "degraded" | "unhealthy" | "unknown",
+        latency_ms: b.lastLatencyMs ?? undefined,
+      })),
+    };
   });
 
   // Time series rollups
@@ -57,7 +77,13 @@ export async function metricsApiRoutes(app: FastifyInstance, ctx: AppContext): P
       .limit(parseInt(limit, 10))
       .all();
 
-    return rows.reverse();
+    return rows.reverse().map((row) => ({
+      timestamp: row.bucket,
+      requests: row.requestCount,
+      tokens: row.totalTokens,
+      errors: row.errorCount,
+      avg_latency_ms: row.avgDurationMs ?? undefined,
+    }));
   });
 
   // Recent events
@@ -72,14 +98,39 @@ export async function metricsApiRoutes(app: FastifyInstance, ctx: AppContext): P
       if (vmodelId) conditions.push(eq(usageEvents.vmodelId, vmodelId));
 
       const rows = await ctx.db.db
-        .select()
+        .select({
+          id: usageEvents.id,
+          keyPrefix: apiKeys.prefix,
+          vmodel: vmodels.modelId,
+          backendModelId: usageEvents.backendModelId,
+          endpoint: usageEvents.endpoint,
+          statusCode: usageEvents.statusCode,
+          totalTokens: usageEvents.totalTokens,
+          durationMs: usageEvents.durationMs,
+          tps: usageEvents.tps,
+          error: usageEvents.error,
+          timestamp: usageEvents.timestamp,
+        })
         .from(usageEvents)
+        .leftJoin(apiKeys, eq(usageEvents.keyId, apiKeys.id))
+        .leftJoin(vmodels, eq(usageEvents.vmodelId, vmodels.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(usageEvents.timestamp))
         .limit(parseInt(limit, 10))
         .all();
 
-      return rows;
+      return rows.map((row) => ({
+        id: row.id,
+        keyPrefix: row.keyPrefix,
+        vmodel: row.vmodel ?? row.backendModelId ?? "unknown",
+        endpoint: row.endpoint,
+        statusCode: row.statusCode,
+        totalTokens: row.totalTokens,
+        durationMs: row.durationMs,
+        tps: row.tps,
+        error: row.error,
+        timestamp: row.timestamp,
+      }));
     },
   );
 }

@@ -1,6 +1,20 @@
-import { env } from '$env/dynamic/public';
+import { getApiBaseUrl } from './api-base.js';
+import { ApiHttpError, apiFetch } from '@ai-v-models/core/http';
 
-const BASE_URL = env.PUBLIC_API_URL ?? 'http://localhost:4000';
+interface BackendApiRow {
+	id: string;
+	name: string;
+	displayName: string;
+	hostName: string;
+	provider: string;
+	baseUrl: string;
+	keyMode: string;
+	enabled: boolean;
+	lastHealthStatus: 'healthy' | 'degraded' | 'unhealthy' | null;
+	lastLatencyMs: number | null;
+	createdAt: number;
+	updatedAt: number;
+}
 
 export interface Backend {
 	id: string;
@@ -16,11 +30,56 @@ export interface Backend {
 	updated_at: string;
 }
 
+export interface BackendInput {
+	name: string;
+	provider: string;
+	host: string;
+	url: string;
+	api_key?: string;
+}
+
+function mapBackend(row: BackendApiRow): Backend {
+	return {
+		id: row.id,
+		name: row.displayName || row.name,
+		provider: row.provider,
+		host: row.hostName,
+		url: row.baseUrl,
+		health: row.lastHealthStatus ?? 'unknown',
+		latency_ms: row.lastLatencyMs ?? undefined,
+		enabled: row.enabled,
+		created_at: new Date(row.createdAt).toISOString(),
+		updated_at: new Date(row.updatedAt).toISOString()
+	};
+}
+
+function toCreatePayload(data: BackendInput): Record<string, unknown> {
+	const payload: Record<string, unknown> = {
+		name: data.name,
+		displayName: data.name,
+		hostName: data.host,
+		provider: data.provider,
+		baseUrl: data.url
+	};
+	if (data.api_key) {
+		payload.apiKey = data.api_key;
+		payload.keyMode = 'abstraction';
+	}
+	return payload;
+}
+
+export type VModelStrategy =
+	| 'session-pin'
+	| 'round-robin'
+	| 'weighted'
+	| 'least-connections'
+	| 'least-latency';
+
 export interface VModel {
 	id: string;
 	model_id: string;
 	display_name: string;
-	strategy: 'round_robin' | 'least_latency' | 'random' | 'failover';
+	strategy: VModelStrategy;
 	streaming: boolean;
 	enabled: boolean;
 	backends: VModelBackend[];
@@ -28,10 +87,86 @@ export interface VModel {
 }
 
 export interface VModelBackend {
+	id: string;
 	backend_id: string;
+	backend_model_id: string;
 	backend_name?: string;
 	weight?: number;
-	priority?: number;
+}
+
+interface VModelApiRow {
+	id: string;
+	modelId: string;
+	displayName: string;
+	balancingStrategy: string;
+	streaming: boolean;
+	enabled: boolean;
+	backends?: VModelBackendApiRow[];
+	createdAt: number;
+}
+
+interface VModelBackendApiRow {
+	id: string;
+	backendId: string;
+	backendModelId: string;
+	weight: number;
+}
+
+function mapVModelBackend(row: VModelBackendApiRow): VModelBackend {
+	return {
+		id: row.id,
+		backend_id: row.backendId,
+		backend_model_id: row.backendModelId,
+		weight: row.weight
+	};
+}
+
+function mapVModel(row: VModelApiRow): VModel {
+	return {
+		id: row.id,
+		model_id: row.modelId,
+		display_name: row.displayName,
+		strategy: row.balancingStrategy as VModelStrategy,
+		streaming: row.streaming,
+		enabled: row.enabled,
+		backends: (row.backends ?? []).map(mapVModelBackend),
+		created_at: new Date(row.createdAt).toISOString()
+	};
+}
+
+export interface VModelCreateInput {
+	model_id: string;
+	display_name: string;
+	strategy?: VModelStrategy;
+	streaming?: boolean;
+	enabled?: boolean;
+	backends?: Array<Pick<VModelBackend, 'backend_id' | 'backend_model_id' | 'weight'>>;
+}
+
+function toCreateVModelPayload(data: VModelCreateInput): Record<string, unknown> {
+	const payload: Record<string, unknown> = {};
+	if (data.model_id) payload.modelId = data.model_id;
+	if (data.display_name) payload.displayName = data.display_name;
+	if (data.strategy) payload.balancingStrategy = data.strategy;
+	if (data.streaming !== undefined) payload.streaming = data.streaming;
+	if (data.enabled !== undefined) payload.enabled = data.enabled;
+	if (data.backends?.length) {
+		payload.backends = data.backends.map((b) => ({
+			backendId: b.backend_id,
+			backendModelId: b.backend_model_id,
+			weight: b.weight ?? 1
+		}));
+	}
+	return payload;
+}
+
+function toUpdateVModelPayload(data: Partial<VModel>): Record<string, unknown> {
+	const payload: Record<string, unknown> = {};
+	if (data.display_name !== undefined) payload.displayName = data.display_name;
+	if (data.strategy !== undefined) payload.balancingStrategy = data.strategy;
+	if (data.streaming !== undefined) payload.streaming = data.streaming;
+	if (data.enabled !== undefined) payload.enabled = data.enabled;
+	return payload;
 }
 
 export interface ApiKey {
@@ -43,10 +178,107 @@ export interface ApiKey {
 	suspended_reason?: string;
 	rpm_limit?: number;
 	day_budget?: number;
-	allowed_models?: string[];
+	allowed_vmodels?: string[];
+	allowed_backends?: string[];
 	expires_at?: string;
 	last_used_at?: string;
 	created_at: string;
+	retrievable: boolean;
+}
+
+interface ApiKeyApiRow {
+	id: string;
+	prefix: string;
+	name: string;
+	enabled: boolean;
+	suspended: boolean;
+	suspendedReason?: string | null;
+	rateLimitRpm?: number | null;
+	tokenBudgetDay?: number | null;
+	allowedModels?: string | null;
+	allowedBackends?: string | null;
+	expiresAt?: number | null;
+	lastUsedAt?: number | null;
+	createdAt: number;
+	retrievable?: boolean;
+}
+
+function mapApiKey(row: ApiKeyApiRow): ApiKey {
+	let allowedModels: string[] | undefined;
+	if (row.allowedModels) {
+		try {
+			allowedModels = JSON.parse(row.allowedModels) as string[];
+		} catch {
+			allowedModels = undefined;
+		}
+	}
+
+	let allowedBackends: string[] | undefined;
+	if (row.allowedBackends) {
+		try {
+			allowedBackends = JSON.parse(row.allowedBackends) as string[];
+		} catch {
+			allowedBackends = undefined;
+		}
+	}
+
+	return {
+		id: row.id,
+		key_prefix: row.prefix,
+		name: row.name,
+		enabled: row.enabled,
+		suspended: row.suspended,
+		suspended_reason: row.suspendedReason ?? undefined,
+		rpm_limit: row.rateLimitRpm ?? undefined,
+		day_budget: row.tokenBudgetDay ?? undefined,
+		allowed_vmodels: allowedModels,
+		allowed_backends: allowedBackends,
+		expires_at: row.expiresAt != null ? new Date(row.expiresAt).toISOString() : undefined,
+		last_used_at: row.lastUsedAt != null ? new Date(row.lastUsedAt).toISOString() : undefined,
+		created_at: new Date(row.createdAt).toISOString(),
+		retrievable: row.retrievable ?? false
+	};
+}
+
+function toCreateKeyPayload(data: Partial<ApiKey>): Record<string, unknown> {
+	const payload: Record<string, unknown> = {};
+	if (data.name !== undefined) payload.name = data.name;
+	if (data.enabled !== undefined) payload.enabled = data.enabled;
+	if (data.rpm_limit !== undefined) payload.rateLimitRpm = data.rpm_limit;
+	if (data.day_budget !== undefined) payload.tokenBudgetDay = data.day_budget;
+	if (data.expires_at !== undefined) {
+		payload.expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : null;
+	}
+	if ('allowed_vmodels' in data) {
+		payload.allowedModels = data.allowed_vmodels ?? null;
+	}
+	if ('allowed_backends' in data) {
+		payload.allowedBackends = data.allowed_backends ?? null;
+	}
+	return payload;
+}
+
+function toUpdateKeyPayload(data: Partial<ApiKey>): Record<string, unknown> {
+	return toCreateKeyPayload(data);
+}
+
+export interface AppSettings {
+	apiKeys: {
+		showOnce: boolean;
+	};
+}
+
+interface KeyLogApiRow {
+	id: string;
+	keyId: string;
+	endpoint: string;
+	statusCode: number;
+	promptTokens: number;
+	completionTokens: number;
+	durationMs: number;
+	tps: number | null;
+	error: string | null;
+	timestamp: number;
 }
 
 export interface KeyLog {
@@ -60,6 +292,59 @@ export interface KeyLog {
 	tps?: number;
 	error?: string;
 	created_at: string;
+}
+
+function mapKeyLog(row: KeyLogApiRow): KeyLog {
+	return {
+		id: row.id,
+		key_id: row.keyId,
+		endpoint: row.endpoint,
+		status_code: row.statusCode,
+		tokens_in: row.promptTokens,
+		tokens_out: row.completionTokens,
+		duration_ms: row.durationMs,
+		tps: row.tps ?? undefined,
+		error: row.error ?? undefined,
+		created_at: new Date(row.timestamp).toISOString()
+	};
+}
+
+export function parseKeyLog(data: unknown): KeyLog | null {
+	if (!data || typeof data !== 'object') return null;
+	return mapKeyLog(data as KeyLogApiRow);
+}
+
+interface MetricsEventApiRow {
+	id: string;
+	keyPrefix?: string | null;
+	vmodel?: string;
+	endpoint: string;
+	statusCode: number;
+	totalTokens?: number;
+	durationMs?: number;
+	tps?: number | null;
+	error?: string | null;
+	timestamp: number;
+}
+
+function mapMetricsEvent(row: MetricsEventApiRow): MetricsEvent {
+	return {
+		id: row.id,
+		key_prefix: row.keyPrefix ?? 'unknown',
+		vmodel: row.vmodel ?? 'unknown',
+		endpoint: row.endpoint,
+		status_code: row.statusCode,
+		tokens: row.totalTokens,
+		duration_ms: row.durationMs,
+		tps: row.tps ?? undefined,
+		error: row.error ?? undefined,
+		created_at: new Date(row.timestamp).toISOString()
+	};
+}
+
+export function parseMetricsEvent(data: unknown): MetricsEvent | null {
+	if (!data || typeof data !== 'object') return null;
+	return mapMetricsEvent(data as MetricsEventApiRow);
 }
 
 export interface KeyBudget {
@@ -134,70 +419,147 @@ class ApiError extends Error {
 	}
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-	const res = await fetch(`${BASE_URL}/api/v1${path}`, {
-		...init,
-		credentials: 'include',
-		headers: {
-			'Content-Type': 'application/json',
-			...init?.headers
+async function request<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
+	const { json, ...fetchInit } = init ?? {};
+	try {
+		return await apiFetch<T>(`${getApiBaseUrl()}/api/v1${path}`, {
+			...fetchInit,
+			method: fetchInit.method ?? 'GET',
+			credentials: 'include',
+			body: json !== undefined ? json : fetchInit.body,
+		});
+	} catch (err) {
+		if (err instanceof ApiHttpError) {
+			throw new ApiError(err.status, err.message);
 		}
-	});
-	if (!res.ok) {
-		let msg = `HTTP ${res.status}`;
-		try {
-			const body = (await res.json()) as { error?: string; message?: string };
-			msg = body.error ?? body.message ?? msg;
-		} catch {
-			// ignore parse errors
-		}
-		throw new ApiError(res.status, msg);
+		throw err;
 	}
-	if (res.status === 204) return undefined as T;
-	return res.json() as Promise<T>;
 }
 
 export const api = {
 	// Backends
-	getBackends: () => request<Backend[]>('/backends'),
-	addBackend: (data: Partial<Backend>) =>
-		request<Backend>('/backends', { method: 'POST', body: JSON.stringify(data) }),
-	updateBackend: (id: string, data: Partial<Backend>) =>
-		request<Backend>(`/backends/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+	getBackends: async () => {
+		const rows = await request<BackendApiRow[]>('/backends');
+		return rows.map(mapBackend);
+	},
+	addBackend: async (data: BackendInput) => {
+		const row = await request<BackendApiRow>('/backends', {
+			method: 'POST',
+			json: toCreatePayload(data)
+		});
+		return mapBackend(row);
+	},
+	updateBackend: async (
+		id: string,
+		data: Partial<Pick<Backend, 'name' | 'url' | 'enabled'>> & { api_key?: string }
+	) => {
+		const payload: Record<string, unknown> = {};
+		if (data.name !== undefined) payload.displayName = data.name;
+		if (data.url !== undefined) payload.baseUrl = data.url;
+		if (data.enabled !== undefined) payload.enabled = data.enabled;
+		if (data.api_key) payload.apiKey = data.api_key;
+		const row = await request<BackendApiRow>(`/backends/${id}`, {
+			method: 'PATCH',
+			json: payload
+		});
+		return mapBackend(row);
+	},
+	getBackend: async (id: string) => {
+		const row = await request<BackendApiRow>(`/backends/${id}`);
+		return mapBackend(row);
+	},
 	deleteBackend: (id: string) => request<void>(`/backends/${id}`, { method: 'DELETE' }),
-	testBackend: (id: string) =>
-		request<{ success: boolean; latency_ms?: number; error?: string }>(`/backends/${id}/test`, {
-			method: 'POST'
-		}),
+	testBackend: async (id: string) => {
+		const result = await request<{
+			success: boolean;
+			latencyMs?: number;
+			health?: 'healthy' | 'degraded' | 'unhealthy';
+			error?: string;
+		}>(`/backends/${id}/test`, { method: 'POST' });
+		return {
+			success: result.success,
+			latency_ms: result.latencyMs,
+			health: result.health,
+			error: result.error
+		};
+	},
 
 	// Virtual Models
-	getVModels: () => request<VModel[]>('/vmodels'),
-	createVModel: (data: Partial<VModel>) =>
-		request<VModel>('/vmodels', { method: 'POST', body: JSON.stringify(data) }),
-	updateVModel: (id: string, data: Partial<VModel>) =>
-		request<VModel>(`/vmodels/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+	getVModels: async () => {
+		const rows = await request<VModelApiRow[]>('/vmodels');
+		return rows.map(mapVModel);
+	},
+	createVModel: async (data: VModelCreateInput) => {
+		const row = await request<VModelApiRow>('/vmodels', {
+			method: 'POST',
+			json: toCreateVModelPayload(data)
+		});
+		return mapVModel(row);
+	},
+	getVModel: async (id: string) => {
+		const row = await request<VModelApiRow>(`/vmodels/${id}`);
+		return mapVModel(row);
+	},
+	updateVModel: async (id: string, data: Partial<VModel>) => {
+		await request<{ success: boolean }>(`/vmodels/${id}`, {
+			method: 'PATCH',
+			json: toUpdateVModelPayload(data)
+		});
+		const row = await request<VModelApiRow>(`/vmodels/${id}`);
+		return mapVModel(row);
+	},
 	deleteVModel: (id: string) => request<void>(`/vmodels/${id}`, { method: 'DELETE' }),
-	addVModelBackend: (vmodelId: string, data: VModelBackend) =>
-		request<VModel>(`/vmodels/${vmodelId}/backends`, { method: 'POST', body: JSON.stringify(data) }),
-	removeVModelBackend: (vmodelId: string, backendId: string) =>
-		request<void>(`/vmodels/${vmodelId}/backends/${backendId}`, { method: 'DELETE' }),
+	addVModelBackend: (
+		vmodelId: string,
+		data: Pick<VModelBackend, 'backend_id' | 'backend_model_id'> & { weight?: number }
+	) =>
+		request<{ success: boolean }>(`/vmodels/${vmodelId}/backends`, {
+			method: 'POST',
+			json: {
+				backendId: data.backend_id,
+				backendModelId: data.backend_model_id,
+				weight: data.weight
+			}
+		}),
+	removeVModelBackend: (vmodelId: string, backendMappingId: string) =>
+		request<void>(`/vmodels/${vmodelId}/backends/${backendMappingId}`, { method: 'DELETE' }),
 
 	// Keys
-	getKeys: () => request<ApiKey[]>('/keys'),
-	createKey: (data: Partial<ApiKey>) =>
-		request<ApiKey & { key: string }>('/keys', { method: 'POST', body: JSON.stringify(data) }),
+	getKeys: async () => {
+		const rows = await request<ApiKeyApiRow[]>('/keys');
+		return rows.map(mapApiKey);
+	},
+	getKey: async (id: string) => mapApiKey(await request<ApiKeyApiRow>(`/keys/${id}`)),
+	createKey: async (data: Partial<ApiKey>) => {
+		const result = await request<ApiKeyApiRow & { key: string; showOnce?: boolean }>('/keys', {
+			method: 'POST',
+			json: toCreateKeyPayload(data)
+		});
+		return { ...mapApiKey(result), key: result.key, showOnce: result.showOnce ?? false };
+	},
+	revealKey: async (id: string) => {
+		const result = await request<{ key: string }>(`/keys/${id}/secret`);
+		return result.key;
+	},
+	updateKey: (id: string, data: Partial<ApiKey>) =>
+		request<{ success: boolean }>(`/keys/${id}`, { method: 'PATCH', json: toUpdateKeyPayload(data) }),
 	suspendKey: (id: string, reason: string) =>
-		request<ApiKey>(`/keys/${id}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) }),
+		request<ApiKey>(`/keys/${id}/suspend`, { method: 'POST', json: { reason } }),
 	resumeKey: (id: string) => request<ApiKey>(`/keys/${id}/resume`, { method: 'POST' }),
 	deleteKey: (id: string) => request<void>(`/keys/${id}`, { method: 'DELETE' }),
-	getKeyLogs: (id: string, limit = 100) =>
-		request<KeyLog[]>(`/keys/${id}/logs?limit=${limit}`),
+	getKeyLogs: async (id: string, limit = 100) => {
+		const rows = await request<KeyLogApiRow[]>(`/keys/${id}/logs?limit=${limit}`);
+		return rows.map(mapKeyLog);
+	},
 	getKeyBudget: (id: string) => request<KeyBudget>(`/keys/${id}/budget`),
 
 	// Hooks
 	getHooks: () => request<Hook[]>('/hooks'),
+	getHook: (id: string) => request<Hook>(`/hooks/${id}`),
 	createHook: (data: Partial<Hook>) =>
-		request<Hook>('/hooks', { method: 'POST', body: JSON.stringify(data) }),
+		request<Hook>('/hooks', { method: 'POST', json: data }),
+	updateHook: (id: string, data: Partial<Pick<Hook, 'name' | 'enabled'>>) =>
+		request<{ success: boolean }>(`/hooks/${id}`, { method: 'PATCH', json: data }),
 	deleteHook: (id: string) => request<void>(`/hooks/${id}`, { method: 'DELETE' }),
 	testHook: (id: string) =>
 		request<{ success: boolean; error?: string }>(`/hooks/${id}/test`, { method: 'POST' }),
@@ -212,20 +574,31 @@ export const api = {
 		).toString();
 		return request<MetricsRollup[]>(`/metrics/rollups${qs ? `?${qs}` : ''}`);
 	},
-	getMetricsEvents: (params: { limit?: number; before?: string }) => {
+	getMetricsEvents: async (params: { limit?: number; before?: string }) => {
 		const qs = new URLSearchParams(
 			Object.entries(params)
 				.filter(([, v]) => v !== undefined)
 				.map(([k, v]) => [k, String(v)])
 		).toString();
-		return request<MetricsEvent[]>(`/metrics/events${qs ? `?${qs}` : ''}`);
+		const rows = await request<MetricsEventApiRow[]>(`/metrics/events${qs ? `?${qs}` : ''}`);
+		return rows.map(mapMetricsEvent);
 	},
 
 	// Auth
-	login: (username: string, password: string) =>
-		request<User>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+	login: async (username: string, password: string) => {
+		const res = await request<{ user: User; expiresAt: number }>('/auth/login', {
+			method: 'POST',
+			json: { username, password }
+		});
+		return res.user;
+	},
 	logout: () => request<void>('/auth/logout', { method: 'POST' }),
-	getMe: () => request<User>('/auth/me')
+	getMe: () => request<User>('/auth/me'),
+
+	// Settings
+	getSettings: () => request<AppSettings>('/settings'),
+	updateSettings: (data: Partial<AppSettings>) =>
+		request<AppSettings>('/settings', { method: 'PATCH', json: data })
 };
 
 export { ApiError };

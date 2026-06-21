@@ -42,11 +42,12 @@ async function insertKey(
 describe("Key management", () => {
   let mock: StartedMockServer;
   let proxy: TestProxy;
+  let backendId: string;
 
   beforeAll(async () => {
     mock = await startMockServer({ models: [{ id: "test-model" }], hostName: "test", provider: "generic" });
     proxy = await startTestProxy();
-    await insertBackend(proxy, mock.url);
+    backendId = await insertBackend(proxy, mock.url);
   });
 
   afterAll(async () => {
@@ -86,8 +87,11 @@ describe("Key management", () => {
     expect(res.status).toBe(403);
   });
 
-  it("should reject key with model restriction", async () => {
-    const key = await insertKey(proxy, { allowedModels: JSON.stringify(["other-model"]) });
+  it("should reject key with v-model restriction and no pass-through backends", async () => {
+    const key = await insertKey(proxy, {
+      allowedModels: JSON.stringify(["other-model"]),
+      allowedBackends: JSON.stringify([]),
+    });
     const res = await fetch(`${proxy.url}/v1/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -127,8 +131,8 @@ describe("Key management", () => {
     expect(res.status).toBe(429);
   });
 
-  it("should allow valid key with model access", async () => {
-    const key = await insertKey(proxy, { allowedModels: JSON.stringify([modelId]) });
+  it("should allow valid key with pass-through backend access", async () => {
+    const key = await insertKey(proxy, { allowedBackends: JSON.stringify([backendId]) });
     const res = await fetch(`${proxy.url}/v1/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },

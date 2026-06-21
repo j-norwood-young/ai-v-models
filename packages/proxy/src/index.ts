@@ -55,6 +55,7 @@ const ctx: AppContext = {
 // Start health monitor
 const healthMonitor = new HealthMonitor(
   db,
+  masterKey,
   config.health.checkIntervalSecs,
   config.health.timeoutMs,
 );
@@ -66,7 +67,7 @@ const app = await createApp(ctx);
 const { host, port } = config.server;
 await app.listen({ host, port });
 
-log.info({ host, port }, `ai-v-models proxy listening on http://${host}:${port}`);
+log.info({ host, port }, `ai-v-models listening on http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {

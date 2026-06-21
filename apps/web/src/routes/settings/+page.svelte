@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import { auth } from '$lib/auth.svelte.js';
 
@@ -8,6 +9,42 @@
 	let pwLoading = $state(false);
 	let pwError = $state<string | null>(null);
 	let pwSuccess = $state(false);
+
+	let apiKeysShowOnce = $state(false);
+	let settingsLoading = $state(true);
+	let settingsSaving = $state(false);
+	let settingsError = $state<string | null>(null);
+	let settingsSuccess = $state(false);
+
+	const isAdmin = $derived(auth.user?.role === 'admin');
+
+	onMount(async () => {
+		try {
+			const settings = await api.getSettings();
+			apiKeysShowOnce = settings.apiKeys.showOnce;
+		} catch (err) {
+			settingsError = err instanceof Error ? err.message : 'Failed to load settings';
+		} finally {
+			settingsLoading = false;
+		}
+	});
+
+	async function handleToggleShowOnce() {
+		if (!isAdmin) return;
+		settingsSaving = true;
+		settingsError = null;
+		settingsSuccess = false;
+		const next = !apiKeysShowOnce;
+		try {
+			const settings = await api.updateSettings({ apiKeys: { showOnce: next } });
+			apiKeysShowOnce = settings.apiKeys.showOnce;
+			settingsSuccess = true;
+		} catch (err) {
+			settingsError = err instanceof Error ? err.message : 'Failed to update settings';
+		} finally {
+			settingsSaving = false;
+		}
+	}
 
 	async function handleChangePassword(e: SubmitEvent) {
 		e.preventDefault();
@@ -65,6 +102,53 @@
 					<p class="text-sm text-gray-400">{auth.user.role}</p>
 				</div>
 			</div>
+		</div>
+	{/if}
+
+	<!-- API Keys (admin) -->
+	{#if isAdmin}
+		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+			<h2 class="text-base font-semibold text-gray-100 mb-4">API Keys</h2>
+			{#if settingsLoading}
+				<p class="text-sm text-gray-500">Loading…</p>
+			{:else}
+				<div class="flex items-start justify-between gap-4">
+					<div>
+						<p class="text-sm text-gray-200">Show keys only once</p>
+						<p class="text-xs text-gray-500 mt-1">
+							When enabled, new API keys are shown at creation only and cannot be retrieved later.
+							Existing retrievable keys are unaffected.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={handleToggleShowOnce}
+						disabled={settingsSaving}
+						class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50"
+						class:bg-cyan-500={apiKeysShowOnce}
+						class:bg-gray-700={!apiKeysShowOnce}
+						role="switch"
+						aria-checked={apiKeysShowOnce}
+						aria-label="Show API keys only once"
+					>
+						<span
+							class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+							class:translate-x-4={apiKeysShowOnce}
+							class:translate-x-0={!apiKeysShowOnce}
+						></span>
+					</button>
+				</div>
+				{#if settingsError}
+					<div class="mt-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
+						{settingsError}
+					</div>
+				{/if}
+				{#if settingsSuccess}
+					<div class="mt-3 text-sm text-green-400 bg-green-900/20 border border-green-800 rounded-lg px-3 py-2">
+						Settings saved.
+					</div>
+				{/if}
+			{/if}
 		</div>
 	{/if}
 
@@ -148,7 +232,7 @@
 					<p class="text-xs text-gray-500">Server liveness endpoint</p>
 				</div>
 				<a
-					href="/api/v1/health"
+					href="/health"
 					target="_blank"
 					class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
 				>

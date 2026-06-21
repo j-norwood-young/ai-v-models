@@ -3,13 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "description": "Modern streaming reverse proxy for OpenAI-compatible LLMs",
+  "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=9.0.0"
   },
   "scripts": {
+    "start": "node packages/proxy/dist/index.js",
+    "dev": "concurrently -k -n proxy,web \"pnpm --filter @ai-v-models/proxy dev\" \"pnpm --filter @ai-v-models/web dev\"",
+    "dev:proxy": "pnpm --filter @ai-v-models/proxy dev",
+    "dev:web": "pnpm --filter @ai-v-models/web dev",
+    "avm": "node packages/cli/dist/index.js",
     "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
     "test": "turbo run test",
     "test:e2e": "vitest run --project e2e",
     "lint": "turbo run lint",
@@ -24,6 +29,7 @@
     "eslint-config-prettier": "^10.1.5",
     "prettier": "^3.5.3",
     "prettier-plugin-svelte": "^3.4.0",
+    "concurrently": "^9.1.2",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "vitest": "^3.2.3"

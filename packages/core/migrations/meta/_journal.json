@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1781944956485,
+      "tag": "0000_right_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781948512600,
+      "tag": "0001_api_key_secrets",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781950000000,
+      "tag": "0002_key_allowed_backends",
+      "breakpoints": true
+    }
+  ]
+}

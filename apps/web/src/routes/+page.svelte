@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import { sse } from '$lib/sse.svelte.js';
 	import type { MetricsSummary, MetricsRollup } from '$lib/api.js';
@@ -11,10 +10,12 @@
 
 	async function load() {
 		try {
-			[summary, rollups] = await Promise.all([
+			const [nextSummary, nextRollups] = await Promise.all([
 				api.getMetricsSummary(),
 				api.getMetricsRollups({ period: 'hour', limit: 24 })
 			]);
+			summary = nextSummary;
+			rollups = nextRollups;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load metrics';
 		} finally {
@@ -27,12 +28,7 @@
 	);
 
 	$effect(() => {
-		if (sse.latestEvent?.type === 'metrics_update') {
-			load();
-		}
-	});
-
-	onMount(() => {
+		void sse.latestEvent;
 		load();
 	});
 

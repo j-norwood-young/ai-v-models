@@ -1,8 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { fetch } from "undici";
-import { backends as backendsTable, vmodels as vmodelsTable } from "@ai-v-models/core";
-import { decrypt } from "@ai-v-models/core";
+import { backends as backendsTable, buildBackendApiUrl, decrypt } from "@ai-v-models/core";
 import type { AppContext } from "../../context.js";
 
 export async function embeddingsRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
@@ -17,20 +16,15 @@ export async function embeddingsRoutes(app: FastifyInstance, ctx: AppContext): P
     const authHeader = req.headers.authorization;
     const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    if (rawKey) {
-      const authResult = await ctx.keyAuth.authenticate(rawKey);
-      if (!authResult.success) {
-        return reply.status(authResult.status).send({ error: { message: authResult.error } });
-      }
-      const modelAccess = await ctx.keyAuth.checkModelAccess(authResult.key, requestedModel, {
-        embeddings: true,
-      });
-      if (!modelAccess.allowed) {
-        return reply.status(403).send({ error: { message: modelAccess.error } });
-      }
+    if (!rawKey) {
+      return reply.status(401).send({ error: { message: "Missing Authorization header" } });
     }
 
-    // Resolve backend
+    const authResult = await ctx.keyAuth.authenticate(rawKey);
+    if (!authResult.success) {
+      return reply.status(authResult.status).send({ error: { message: authResult.error } });
+    }
+
     const parts = requestedModel.split(":");
     if (parts.length < 3) {
       return reply.status(404).send({ error: { message: `Model '${requestedModel}' not found` } });
@@ -56,14 +50,21 @@ export async function embeddingsRoutes(app: FastifyInstance, ctx: AppContext): P
       return reply.status(404).send({ error: { message: `Backend for model '${requestedModel}' not found` } });
     }
 
+    const modelAccess = await ctx.keyAuth.checkBackendAccess(authResult.key, backend.id, {
+      embeddings: true,
+    });
+    if (!modelAccess.allowed) {
+      return reply.status(403).send({ error: { message: modelAccess.error } });
+    }
+
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (backend.keyMode === "abstraction" && backend.encryptedApiKey) {
       headers["Authorization"] = `Bearer ${decrypt(backend.encryptedApiKey, ctx.masterKey)}`;
-    } else if (backend.keyMode === "passthrough" && rawKey) {
+    } else if (backend.keyMode === "passthrough") {
       headers["Authorization"] = `Bearer ${rawKey}`;
     }
 
-    const res = await fetch(`${backend.baseUrl}/v1/embeddings`, {
+    const res = await fetch(buildBackendApiUrl(backend.baseUrl, "/v1/embeddings"), {
       method: "POST",
       headers,
       body: JSON.stringify({ ...body, model: modelId }),

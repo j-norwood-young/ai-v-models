@@ -1,3 +1,5 @@
+import { apiFetch, ApiHttpError, buildJsonRequestInit } from "@ai-v-models/core/http";
+
 export interface ApiClientOptions {
   baseUrl: string;
   token: string | undefined;
@@ -7,32 +9,23 @@ export interface ApiClientOptions {
 export class ApiClient {
   constructor(private readonly opts: ApiClientOptions) {}
 
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<T> {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+  private headers(): Record<string, string> {
+    const headers: Record<string, string> = {};
     if (this.opts.token) {
       headers["Authorization"] = `Bearer ${this.opts.token}`;
     }
     if (this.opts.sessionCookie) {
       headers["Cookie"] = `avm_session=${this.opts.sessionCookie}`;
     }
+    return headers;
+  }
 
-    const fetchOpts: RequestInit = { method, headers };
-    if (body !== undefined) fetchOpts.body = JSON.stringify(body);
-    const res = await fetch(`${this.opts.baseUrl}${path}`, fetchOpts);
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`API error ${res.status}: ${err}`);
-    }
-
-    if (res.status === 204) return undefined as T;
-    return res.json() as Promise<T>;
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    return apiFetch<T>(`${this.opts.baseUrl}${path}`, {
+      method,
+      headers: this.headers(),
+      body,
+    });
   }
 
   get<T>(path: string): Promise<T> {
@@ -53,3 +46,5 @@ export function createApiClient(baseUrl: string): ApiClient {
   const token = process.env["AVM_ADMIN_TOKEN"];
   return new ApiClient({ baseUrl, token, sessionCookie: undefined });
 }
+
+export { ApiHttpError };

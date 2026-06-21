@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import { sse } from '$lib/sse.svelte.js';
 	import type { MetricsSummary, MetricsRollup } from '$lib/api.js';
@@ -14,10 +13,12 @@
 		loading = true;
 		error = null;
 		try {
-			[summary, rollups] = await Promise.all([
+			const [nextSummary, nextRollups] = await Promise.all([
 				api.getMetricsSummary(),
 				api.getMetricsRollups({ period, limit: 48 })
 			]);
+			summary = nextSummary;
+			rollups = nextRollups;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load metrics';
 		} finally {
@@ -26,13 +27,9 @@
 	}
 
 	$effect(() => {
-		// Re-load whenever period changes or SSE emits a metrics update.
-		// Reading both here makes Svelte track both as dependencies.
-		const _period = period;
-		const ev = sse.latestEvent;
-		if (ev?.type === 'metrics_update' || _period) {
-			load();
-		}
+		void period;
+		void sse.latestEvent;
+		load();
 	});
 
 	const maxRequests = $derived(
@@ -59,7 +56,6 @@
 		return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 	}
 
-	// onMount handled by $effect above which runs on mount
 </script>
 
 <svelte:head>
@@ -212,7 +208,7 @@
 
 		<div class="mt-4 text-right">
 			<a
-				href="/api/v1/metrics"
+				href="/metrics"
 				target="_blank"
 				class="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
 			>

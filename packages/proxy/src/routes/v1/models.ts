@@ -1,12 +1,39 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { fetch } from "undici";
-import { backends as backendsTable, vmodels as vmodelsTable } from "@ai-v-models/core";
-import { decrypt } from "@ai-v-models/core";
+import {
+  backends as backendsTable,
+  vmodels as vmodelsTable,
+  buildBackendApiUrl,
+  decrypt,
+  isBackendAllowed,
+  isVModelAllowed,
+  parseAllowedList,
+} from "@ai-v-models/core";
 import type { AppContext } from "../../context.js";
 
 export async function modelsRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
   app.get("/v1/models", async (req, reply) => {
+    const authHeader = req.headers.authorization;
+    const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (!rawKey) {
+      return reply.status(401).send({
+        error: { message: "Missing Authorization header", type: "auth_error" },
+      });
+    }
+
+    const authResult = await ctx.keyAuth.authenticate(rawKey);
+    if (!authResult.success) {
+      return reply.status(authResult.status).send({
+        error: { message: authResult.error, type: "auth_error", code: authResult.code },
+      });
+    }
+
+    const key = authResult.key;
+    const allowedVModels = parseAllowedList(key.allowedModels);
+    const allowedBackendIds = parseAllowedList(key.allowedBackends);
+
     const models: Array<{
       id: string;
       object: "model";
@@ -15,15 +42,18 @@ export async function modelsRoutes(app: FastifyInstance, ctx: AppContext): Promi
       context_length: number | undefined;
     }> = [];
 
-    // Gather backend models
     const allBackends = await ctx.db.db
       .select()
       .from(backendsTable)
-      .where(and(eq(backendsTable.enabled, true)))
+      .where(eq(backendsTable.enabled, true))
       .all();
 
+    const visibleBackends = allBackends.filter((backend) =>
+      isBackendAllowed(allowedBackendIds, backend.id),
+    );
+
     await Promise.allSettled(
-      allBackends.map(async (backend) => {
+      visibleBackends.map(async (backend) => {
         try {
           const headers: Record<string, string> = {
             "Content-Type": "application/json",
@@ -35,7 +65,7 @@ export async function modelsRoutes(app: FastifyInstance, ctx: AppContext): Promi
 
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 5000);
-          const res = await fetch(`${backend.baseUrl}/v1/models`, {
+          const res = await fetch(buildBackendApiUrl(backend.baseUrl, "/v1/models"), {
             headers,
             signal: controller.signal,
           });
@@ -46,7 +76,6 @@ export async function modelsRoutes(app: FastifyInstance, ctx: AppContext): Promi
           const data = (await res.json()) as { data?: Array<Record<string, unknown>> };
           for (const model of data.data ?? []) {
             const rawId = model["id"] as string;
-            // Build namespaced model ID: "modelId:hostName:provider"
             const namespacedId = `${rawId}:${backend.hostName}:${backend.provider}`;
             models.push({
               id: namespacedId,
@@ -62,14 +91,14 @@ export async function modelsRoutes(app: FastifyInstance, ctx: AppContext): Promi
       }),
     );
 
-    // Add virtual models
     const allVModels = await ctx.db.db
       .select()
       .from(vmodelsTable)
-      .where(eq(vmodelsTable.enabled, true))
+      .where(and(eq(vmodelsTable.enabled, true)))
       .all();
 
     for (const vm of allVModels) {
+      if (!isVModelAllowed(allowedVModels, vm.modelId)) continue;
       models.push({
         id: vm.modelId,
         object: "model",

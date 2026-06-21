@@ -2,13 +2,15 @@ import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { hash, verify } from "@node-rs/argon2";
-import { randomBytes, createHash } from "node:crypto";
-import { users, sessions, apiTokens, auditLog } from "@ai-v-models/core";
+import { randomBytes } from "node:crypto";
+import { users, sessions, auditLog } from "@ai-v-models/core";
 import type { AppContext } from "../../context.js";
+import { getLogger } from "../../logger.js";
 
 export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
   // Login
   app.post<{ Body: { username: string; password: string } }>("/api/v1/auth/login", async (req, reply) => {
+    const log = getLogger();
     const { username, password } = req.body;
 
     const user = await ctx.db.db
@@ -18,11 +20,13 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
       .get();
 
     if (!user || !user.enabled) {
+      log.warn({ username, ip: req.ip }, "Login failed: unknown or disabled user");
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
     const valid = await verify(user.passwordHash, password);
     if (!valid) {
+      log.warn({ username, ip: req.ip }, "Login failed: invalid password");
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
@@ -70,10 +74,12 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
     reply.setCookie("avm_session", sessionToken, {
       httpOnly: true,
       secure: req.protocol === "https",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: ctx.config.security.sessionMaxAgeSecs,
       path: "/",
     });
+
+    log.info({ username: user.username, ip: req.ip }, "User logged in");
 
     return {
       user: {

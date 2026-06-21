@@ -5,7 +5,7 @@ import {
   vmodels as vmodelsTable,
   vmodelBackends as vmodelBackendsTable,
 } from "@ai-v-models/core";
-import { decrypt } from "@ai-v-models/core";
+import { buildBackendApiUrl, decrypt } from "@ai-v-models/core";
 import type { AppContext } from "../../context.js";
 import { streamingProxy } from "../../streaming-proxy.js";
 import { UsageRecorder } from "../../usage-recorder.js";
@@ -13,7 +13,7 @@ import type { BackendCandidate } from "../../balancer.js";
 import type { Backend } from "@ai-v-models/core";
 
 export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
-  const recorder = new UsageRecorder(ctx.db);
+  const recorder = new UsageRecorder(ctx.db, ctx.sse);
 
   app.post("/v1/chat/completions", async (req, reply) => {
     const body = req.body as Record<string, unknown>;
@@ -45,14 +45,6 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
         (m) => Array.isArray(m["content"]) &&
           (m["content"] as Array<Record<string, unknown>>).some((c) => c["type"] === "image_url"),
       );
-
-    const modelAccess = await ctx.keyAuth.checkModelAccess(key, requestedModel, {
-      tools: hasTools,
-      vision: hasVision,
-    });
-    if (!modelAccess.allowed) {
-      return reply.status(403).send({ error: { message: modelAccess.error, type: "permission_error" } });
-    }
 
     const budgetCheck = await ctx.keyAuth.checkTokenBudget(key);
     if (!budgetCheck.allowed) {
@@ -135,6 +127,14 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
       });
     }
 
+    const capabilities = { tools: hasTools, vision: hasVision };
+    const modelAccess = vmodel
+      ? await ctx.keyAuth.checkVModelAccess(key, requestedModel, capabilities)
+      : await ctx.keyAuth.checkBackendAccess(key, candidates[0]!.backendId, capabilities);
+    if (!modelAccess.allowed) {
+      return reply.status(403).send({ error: { message: modelAccess.error, type: "permission_error" } });
+    }
+
     // Select backend via balancer
     const sessionKey = key.id; // Use key ID for session pinning
     const strategy = (vmodel?.balancingStrategy ?? "session-pin") as "session-pin" | "round-robin" | "weighted" | "least-connections" | "least-latency";
@@ -167,7 +167,7 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
     ctx.balancer.incrementConcurrency(selected.backendId);
 
     const proxyResult = await streamingProxy(reply, {
-      upstreamUrl: `${selected.backend.baseUrl}/v1/chat/completions`,
+      upstreamUrl: buildBackendApiUrl(selected.backend.baseUrl, "/v1/chat/completions"),
       upstreamApiKey,
       requestBody: upstreamBody,
       vmodelId: vmodel?.id ?? "direct",
@@ -191,6 +191,7 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
       keyId: key.id,
       keyPrefix: key.prefix,
       vmodelId: vmodel?.id ?? null,
+      vmodelModelId: requestedModel,
       backendId: selected.backendId,
       backendModelId: selected.backendModelId,
       endpoint: "/v1/chat/completions",

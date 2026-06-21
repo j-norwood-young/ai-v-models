@@ -45,6 +45,11 @@ export async function vmodelsRoutes(app: FastifyInstance, ctx: AppContext): Prom
   // Create v-model
   app.post<{ Body: Record<string, unknown> }>("/api/v1/vmodels", async (req, reply) => {
     const body = req.body;
+    const modelId = (body["modelId"] ?? body["model_id"]) as string | undefined;
+    if (!modelId?.trim()) {
+      return reply.status(400).send({ error: "modelId is required" });
+    }
+
     const now = Date.now();
     const id = `vmodel-${nanoid(8)}`;
 
@@ -52,10 +57,10 @@ export async function vmodelsRoutes(app: FastifyInstance, ctx: AppContext): Prom
       .insert(vmodelsTable)
       .values({
         id,
-        modelId: body["modelId"] as string,
-        displayName: (body["displayName"] as string) ?? (body["modelId"] as string),
+        modelId: modelId.trim(),
+        displayName: (body["displayName"] as string) ?? (body["display_name"] as string) ?? modelId.trim(),
         description: body["description"] as string | null ?? null,
-        balancingStrategy: (body["balancingStrategy"] as string) ?? "session-pin",
+        balancingStrategy: (body["balancingStrategy"] as string) ?? (body["strategy"] as string) ?? "session-pin",
         streaming: (body["streaming"] as boolean) ?? true,
         allowToolCalling: (body["allowToolCalling"] as boolean) ?? true,
         allowVision: (body["allowVision"] as boolean) ?? false,
@@ -70,13 +75,15 @@ export async function vmodelsRoutes(app: FastifyInstance, ctx: AppContext): Prom
     const backendMappings = body["backends"] as Array<Record<string, unknown>> | undefined;
     if (backendMappings) {
       for (const bm of backendMappings) {
+        const backendId = (bm["backendId"] ?? bm["backend_id"]) as string | undefined;
+        if (!backendId) continue;
         await ctx.db.db
           .insert(vmodelBackendsTable)
           .values({
             id: `vmb-${nanoid(8)}`,
             vmodelId: id,
-            backendId: bm["backendId"] as string,
-            backendModelId: bm["backendModelId"] as string,
+            backendId,
+            backendModelId: (bm["backendModelId"] ?? bm["backend_model_id"] ?? modelId.trim()) as string,
             weight: (bm["weight"] as number) ?? 1,
             enabled: (bm["enabled"] as boolean) ?? true,
             createdAt: now,

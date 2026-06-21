@@ -12,7 +12,9 @@ import { keysRoutes } from "./routes/api/keys.js";
 import { hooksRoutes } from "./routes/api/hooks.js";
 import { metricsApiRoutes } from "./routes/api/metrics-api.js";
 import { authRoutes } from "./routes/api/auth.js";
+import { settingsRoutes } from "./routes/api/settings.js";
 import { eventsRoutes } from "./routes/api/events.js";
+import { registerWebUi } from "./web-ui.js";
 import { getLogger } from "./logger.js";
 
 export async function createApp(ctx: AppContext) {
@@ -22,6 +24,20 @@ export async function createApp(ctx: AppContext) {
     logger: false, // We use pino directly
     trustProxy: true,
     bodyLimit: 10 * 1024 * 1024, // 10MB
+  });
+
+  // Allow POST/PATCH with Content-Type: application/json but no body (e.g. test endpoints)
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    const text = typeof body === "string" ? body : body.toString();
+    if (text.trim().length === 0) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(text));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
   });
 
   // CORS
@@ -45,14 +61,25 @@ export async function createApp(ctx: AppContext) {
 
   // Request logging hook
   app.addHook("onRequest", async (req) => {
-    log.debug({ method: req.method, url: req.url, ip: req.ip }, "Incoming request");
+    if (req.url.startsWith("/api/")) {
+      log.info({ method: req.method, url: req.url, ip: req.ip }, "API request");
+    } else {
+      log.debug({ method: req.method, url: req.url, ip: req.ip }, "Incoming request");
+    }
   });
 
   app.addHook("onResponse", async (req, reply) => {
-    log.debug(
-      { method: req.method, url: req.url, status: reply.statusCode, elapsed: reply.elapsedTime },
-      "Request completed",
-    );
+    if (req.url.startsWith("/api/")) {
+      log.info(
+        { method: req.method, url: req.url, status: reply.statusCode, elapsed: reply.elapsedTime },
+        "API response",
+      );
+    } else {
+      log.debug(
+        { method: req.method, url: req.url, status: reply.statusCode, elapsed: reply.elapsedTime },
+        "Request completed",
+      );
+    }
   });
 
   // Health check
@@ -82,7 +109,11 @@ export async function createApp(ctx: AppContext) {
   await hooksRoutes(app, ctx);
   await metricsApiRoutes(app, ctx);
   await authRoutes(app, ctx);
+  await settingsRoutes(app, ctx);
   await eventsRoutes(app, ctx);
+
+  // Admin UI (production build) — catch-all, registered last
+  await registerWebUi(app);
 
   // 404 handler
   app.setNotFoundHandler(async (req, reply) => {
@@ -93,6 +124,18 @@ export async function createApp(ctx: AppContext) {
 
   // Error handler
   app.setErrorHandler(async (error, req, reply) => {
+    const err = error as { statusCode?: number; message: string; code?: string };
+    const statusCode = typeof err.statusCode === "number" ? err.statusCode : 500;
+
+    if (statusCode < 500) {
+      return reply.status(statusCode).send({
+        error: {
+          message: err.message,
+          type: typeof err.code === "string" ? err.code : "client_error",
+        },
+      });
+    }
+
     log.error({ err: error, url: req.url }, "Unhandled error");
     return reply.status(500).send({
       error: { message: "Internal server error", type: "server_error" },

@@ -1,20 +1,53 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and, desc, gte } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createHash } from "node:crypto";
-import { apiKeys, requestLogs, tokenBudgetCounters } from "@ai-v-models/core";
-import { generateApiKey } from "@ai-v-models/core";
+import {
+  apiKeys,
+  requestLogs,
+  tokenBudgetCounters,
+  auditLog,
+  generateApiKey,
+  encrypt,
+  decrypt,
+  getApiKeysShowOnce,
+  validateKeyModelAccess,
+} from "@ai-v-models/core";
+import { hashToken } from "@ai-v-models/core";
 import type { AppContext } from "../../context.js";
+import { requireAuth } from "../../auth-session.js";
 
-function hashKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex");
+type ApiKeyRow = typeof apiKeys.$inferSelect;
+
+function normalizeAllowedList(value: unknown): string[] | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function validateAllowedLists(
+  allowedModels: string[] | null | undefined,
+  allowedBackends: string[] | null | undefined,
+): string | null {
+  return validateKeyModelAccess(
+    allowedModels === undefined ? null : allowedModels,
+    allowedBackends === undefined ? null : allowedBackends,
+  );
+}
+
+function toPublicKey(row: ApiKeyRow) {
+  const { keyHash: _keyHash, encryptedKey, ...rest } = row;
+  return {
+    ...rest,
+    retrievable: encryptedKey != null && encryptedKey.length > 0,
+  };
 }
 
 export async function keysRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
   // List all keys
   app.get("/api/v1/keys", async () => {
     const rows = await ctx.db.db.select().from(apiKeys).all();
-    return rows.map((k) => ({ ...k, keyHash: undefined }));
+    return rows.map(toPublicKey);
   });
 
   // Get single key
@@ -25,7 +58,41 @@ export async function keysRoutes(app: FastifyInstance, ctx: AppContext): Promise
       .where(eq(apiKeys.id, req.params.id))
       .get();
     if (!key) return reply.status(404).send({ error: "Key not found" });
-    return { ...key, keyHash: undefined };
+    return toPublicKey(key);
+  });
+
+  // Reveal full key (requires stored encrypted copy)
+  app.get<{ Params: { id: string } }>("/api/v1/keys/:id/secret", async (req, reply) => {
+    const user = await requireAuth(ctx, req, reply);
+    if (!user) return;
+
+    const key = await ctx.db.db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, req.params.id))
+      .get();
+    if (!key) return reply.status(404).send({ error: "Key not found" });
+    if (!key.encryptedKey) {
+      return reply.status(404).send({ error: "Key secret is not available" });
+    }
+
+    const now = Date.now();
+    await ctx.db.db
+      .insert(auditLog)
+      .values({
+        id: nanoid(),
+        userId: user.id,
+        username: user.username,
+        action: "reveal_api_key",
+        resourceType: "api_key",
+        resourceId: key.id,
+        detail: JSON.stringify({ prefix: key.prefix }),
+        ipAddress: req.ip,
+        timestamp: now,
+      })
+      .run();
+
+    return { key: decrypt(key.encryptedKey, ctx.masterKey) };
   });
 
   // Create key
@@ -35,9 +102,17 @@ export async function keysRoutes(app: FastifyInstance, ctx: AppContext): Promise
     const id = `key-${nanoid(8)}`;
 
     const { key, prefix } = generateApiKey();
-    const keyHash = hashKey(key);
+    const keyHash = hashToken(key);
+    const showOnce = await getApiKeysShowOnce(ctx.db);
+    const encryptedKey = showOnce ? null : encrypt(key, ctx.masterKey);
 
-    const allowedModels = body["allowedModels"];
+    const allowedModels = normalizeAllowedList(body["allowedModels"] ?? body["allowed_models"]);
+    const allowedBackends = normalizeAllowedList(body["allowedBackends"] ?? body["allowed_backends"]);
+
+    const accessError = validateAllowedLists(allowedModels, allowedBackends);
+    if (accessError) {
+      return reply.status(400).send({ error: accessError });
+    }
 
     await ctx.db.db
       .insert(apiKeys)
@@ -45,18 +120,20 @@ export async function keysRoutes(app: FastifyInstance, ctx: AppContext): Promise
         id,
         prefix,
         keyHash,
+        encryptedKey,
         name: body["name"] as string,
         enabled: (body["enabled"] as boolean) ?? true,
         suspended: false,
         suspendedReason: null,
-        expiresAt: body["expiresAt"] as number | null ?? null,
+        expiresAt: body["expiresAt"] as number | null ?? body["expires_at"] as number | null ?? null,
         allowedModels: allowedModels ? JSON.stringify(allowedModels) : null,
+        allowedBackends: allowedBackends ? JSON.stringify(allowedBackends) : null,
         allowToolCalling: (body["allowToolCalling"] as boolean) ?? true,
         allowVision: (body["allowVision"] as boolean) ?? false,
         allowEmbeddings: (body["allowEmbeddings"] as boolean) ?? false,
-        rateLimitRpm: body["rateLimitRpm"] as number | null ?? null,
+        rateLimitRpm: body["rateLimitRpm"] as number | null ?? body["rpm_limit"] as number | null ?? null,
         tokenBudgetHour: body["tokenBudgetHour"] as number | null ?? null,
-        tokenBudgetDay: body["tokenBudgetDay"] as number | null ?? null,
+        tokenBudgetDay: body["tokenBudgetDay"] as number | null ?? body["day_budget"] as number | null ?? null,
         tokenBudgetWeek: body["tokenBudgetWeek"] as number | null ?? null,
         tokenBudgetMonth: body["tokenBudgetMonth"] as number | null ?? null,
         logRequests: (body["logRequests"] as boolean) ?? true,
@@ -65,11 +142,16 @@ export async function keysRoutes(app: FastifyInstance, ctx: AppContext): Promise
       })
       .run();
 
+    const row = await ctx.db.db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, id))
+      .get();
+
     return reply.status(201).send({
-      id,
-      key, // Only returned once!
-      prefix,
-      name: body["name"],
+      ...toPublicKey(row!),
+      key,
+      showOnce,
     });
   });
 
@@ -96,8 +178,38 @@ export async function keysRoutes(app: FastifyInstance, ctx: AppContext): Promise
           (updates as Record<string, unknown>)[field] = body[field];
         }
       }
-      if (body["allowedModels"] !== undefined) {
-        updates.allowedModels = body["allowedModels"] ? JSON.stringify(body["allowedModels"]) : null;
+
+      if (body["rpm_limit"] !== undefined) updates.rateLimitRpm = body["rpm_limit"] as number | null;
+      if (body["day_budget"] !== undefined) updates.tokenBudgetDay = body["day_budget"] as number | null;
+      if (body["expires_at"] !== undefined) updates.expiresAt = body["expires_at"] as number | null;
+
+      const allowedModels = normalizeAllowedList(body["allowedModels"] ?? body["allowed_models"]);
+      const allowedBackends = normalizeAllowedList(body["allowedBackends"] ?? body["allowed_backends"]);
+
+      const nextAllowedModels =
+        allowedModels !== undefined ? allowedModels : existing.allowedModels
+          ? (JSON.parse(existing.allowedModels) as string[])
+          : null;
+      const nextAllowedBackends =
+        allowedBackends !== undefined
+          ? allowedBackends
+          : existing.allowedBackends
+            ? (JSON.parse(existing.allowedBackends) as string[])
+            : null;
+
+      const accessError =
+        allowedModels !== undefined || allowedBackends !== undefined
+          ? validateKeyModelAccess(nextAllowedModels, nextAllowedBackends)
+          : null;
+      if (accessError) {
+        return reply.status(400).send({ error: accessError });
+      }
+
+      if (allowedModels !== undefined) {
+        updates.allowedModels = allowedModels ? JSON.stringify(allowedModels) : null;
+      }
+      if (allowedBackends !== undefined) {
+        updates.allowedBackends = allowedBackends ? JSON.stringify(allowedBackends) : null;
       }
 
       await ctx.db.db.update(apiKeys).set(updates).where(eq(apiKeys.id, req.params.id)).run();

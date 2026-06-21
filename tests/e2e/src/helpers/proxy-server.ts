@@ -55,9 +55,10 @@ export async function startTestProxy(): Promise<TestProxy> {
     );
     CREATE TABLE IF NOT EXISTS api_keys (
       id TEXT PRIMARY KEY, prefix TEXT NOT NULL, key_hash TEXT NOT NULL UNIQUE,
+      encrypted_key TEXT,
       name TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1,
       suspended INTEGER NOT NULL DEFAULT 0, suspended_reason TEXT,
-      expires_at INTEGER, allowed_models TEXT, allow_tool_calling INTEGER NOT NULL DEFAULT 1,
+      expires_at INTEGER, allowed_models TEXT, allowed_backends TEXT, allow_tool_calling INTEGER NOT NULL DEFAULT 1,
       allow_vision INTEGER NOT NULL DEFAULT 0, allow_embeddings INTEGER NOT NULL DEFAULT 0,
       rate_limit_rpm INTEGER, token_budget_hour INTEGER, token_budget_day INTEGER,
       token_budget_week INTEGER, token_budget_month INTEGER,
@@ -118,6 +119,9 @@ export async function startTestProxy(): Promise<TestProxy> {
       tool_call_count INTEGER NOT NULL DEFAULT 0, error TEXT,
       request_size INTEGER NOT NULL DEFAULT 0, response_size INTEGER NOT NULL DEFAULT 0,
       timestamp INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL
     );
   `);
 

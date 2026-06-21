@@ -3,11 +3,13 @@ import { eq } from "drizzle-orm";
 import type { DbClient } from "@ai-v-models/core";
 import { usageEvents, usageRollups, requestLogs, apiKeys } from "@ai-v-models/core";
 import type { ProxyResult } from "./streaming-proxy.js";
+import type { SseEmitter } from "./sse.js";
 
 export interface RecordUsageOptions extends ProxyResult {
   keyId: string | null;
   keyPrefix?: string;
   vmodelId: string | null;
+  vmodelModelId?: string | null;
   backendId: string | null;
   backendModelId: string | null;
   endpoint: string;
@@ -48,7 +50,10 @@ function getPeriodBucket(period: string): string {
 }
 
 export class UsageRecorder {
-  constructor(private readonly db: DbClient) {}
+  constructor(
+    private readonly db: DbClient,
+    private readonly sse?: SseEmitter,
+  ) {}
 
   async record(opts: RecordUsageOptions): Promise<void> {
     const now = Date.now();
@@ -77,6 +82,20 @@ export class UsageRecorder {
       })
       .run();
 
+    this.sse?.broadcast("usage-event", {
+      id: eventId,
+      keyId: opts.keyId,
+      keyPrefix: opts.keyPrefix ?? null,
+      vmodel: opts.vmodelModelId ?? opts.vmodelId ?? "unknown",
+      endpoint: opts.endpoint,
+      statusCode: opts.statusCode,
+      totalTokens: opts.totalTokens,
+      durationMs: opts.durationMs,
+      tps: opts.tps,
+      error: opts.error ?? null,
+      timestamp: now,
+    });
+
     // Update rollups (fire-and-forget style — don't block the response)
     this.updateRollups(opts, now).catch(() => {});
 
@@ -91,30 +110,31 @@ export class UsageRecorder {
 
     // Optionally log request
     if (opts.shouldLogRequest) {
-      await this.db.db
-        .insert(requestLogs)
-        .values({
-          id: nanoid(),
-          keyId: opts.keyId,
-          vmodelId: opts.vmodelId,
-          backendId: opts.backendId,
-          backendModelId: opts.backendModelId,
-          endpoint: opts.endpoint,
-          method: "POST",
-          statusCode: opts.statusCode,
-          promptTokens: opts.promptTokens,
-          completionTokens: opts.completionTokens,
-          totalTokens: opts.totalTokens,
-          ttftMs: opts.ttftMs,
-          durationMs: opts.durationMs,
-          tps: opts.tps,
-          toolCallCount: opts.toolCallCount,
-          error: opts.error ?? null,
-          requestSize: opts.requestSize,
-          responseSize: opts.responseSize,
-          timestamp: now,
-        })
-        .run();
+      const logId = nanoid();
+      const logRow = {
+        id: logId,
+        keyId: opts.keyId,
+        vmodelId: opts.vmodelId,
+        backendId: opts.backendId,
+        backendModelId: opts.backendModelId,
+        endpoint: opts.endpoint,
+        method: "POST" as const,
+        statusCode: opts.statusCode,
+        promptTokens: opts.promptTokens,
+        completionTokens: opts.completionTokens,
+        totalTokens: opts.totalTokens,
+        ttftMs: opts.ttftMs,
+        durationMs: opts.durationMs,
+        tps: opts.tps,
+        toolCallCount: opts.toolCallCount,
+        error: opts.error ?? null,
+        requestSize: opts.requestSize,
+        responseSize: opts.responseSize,
+        timestamp: now,
+      };
+
+      await this.db.db.insert(requestLogs).values(logRow).run();
+      this.sse?.broadcast("log", logRow);
     }
   }
 

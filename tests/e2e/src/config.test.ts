@@ -25,6 +25,22 @@ describe("Configuration loading", () => {
     delete process.env["AVM_LOG_LEVEL"];
   });
 
+  it("should use dev port when AVM_DEV=1", () => {
+    process.env["AVM_DEV"] = "1";
+    const config = loadConfig({ configFile: "/nonexistent/config.yaml" });
+    expect(config.server.port).toBe(4001);
+    delete process.env["AVM_DEV"];
+  });
+
+  it("should allow AVM_PORT to override dev default", () => {
+    process.env["AVM_DEV"] = "1";
+    process.env["AVM_PORT"] = "5000";
+    const config = loadConfig({ configFile: "/nonexistent/config.yaml" });
+    expect(config.server.port).toBe(5000);
+    delete process.env["AVM_DEV"];
+    delete process.env["AVM_PORT"];
+  });
+
   it("should coerce string env vars to numbers", () => {
     process.env["AVM_PORT"] = "3999";
     const config = loadConfig({ configFile: "/nonexistent/config.yaml" });

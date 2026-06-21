@@ -1,12 +1,18 @@
-import { env } from '$env/dynamic/public';
 import { browser } from '$app/environment';
+import { getApiBaseUrl } from './api-base.js';
 
-const BASE_URL = env.PUBLIC_API_URL ?? 'http://localhost:4000';
+const SSE_EVENT_TYPES = [
+	'backend-health',
+	'usage-event',
+	'key-event',
+	'log',
+	'system'
+] as const;
 
 export interface SseEvent {
 	type: string;
 	data: unknown;
-	timestamp: string;
+	timestamp: number | string;
 }
 
 function createSseStore() {
@@ -14,33 +20,35 @@ function createSseStore() {
 	let connected = $state(false);
 	let es: EventSource | null = null;
 
+	function handleEvent(event: MessageEvent) {
+		try {
+			latestEvent = JSON.parse(event.data as string) as SseEvent;
+		} catch {
+			latestEvent = {
+				type: 'raw',
+				data: event.data,
+				timestamp: Date.now()
+			};
+		}
+	}
+
 	function connect() {
 		if (!browser || es) return;
 
-		es = new EventSource(`${BASE_URL}/api/v1/events`, { withCredentials: true });
+		es = new EventSource(`${getApiBaseUrl()}/api/v1/events`);
 
 		es.onopen = () => {
 			connected = true;
 		};
 
-		es.onmessage = (event) => {
-			try {
-				const parsed = JSON.parse(event.data as string) as SseEvent;
-				latestEvent = parsed;
-			} catch {
-				latestEvent = {
-					type: 'raw',
-					data: event.data,
-					timestamp: new Date().toISOString()
-				};
-			}
-		};
+		for (const type of SSE_EVENT_TYPES) {
+			es.addEventListener(type, handleEvent);
+		}
 
 		es.onerror = () => {
 			connected = false;
 			es?.close();
 			es = null;
-			// Reconnect after 5 seconds
 			setTimeout(() => connect(), 5000);
 		};
 	}

@@ -2,37 +2,13 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import type { Hook } from '$lib/api.js';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 
 	let hooks = $state<Hook[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let showWebhookForm = $state(false);
-	let showInternalForm = $state(false);
 	let testResults = $state<Record<string, { success: boolean; error?: string; loading: boolean }>>({});
 	let deleteConfirm = $state<string | null>(null);
-
-	// Webhook form
-	let whName = $state('');
-	let whTrigger = $state('request.complete');
-	let whUrl = $state('');
-	let whError = $state<string | null>(null);
-	let whLoading = $state(false);
-
-	// Internal hook form
-	let ihName = $state('');
-	let ihTrigger = $state('request.complete');
-	let ihModule = $state('');
-	let ihError = $state<string | null>(null);
-	let ihLoading = $state(false);
-
-	const triggers = [
-		'request.start',
-		'request.complete',
-		'request.error',
-		'key.suspended',
-		'key.budget_exceeded',
-		'backend.unhealthy'
-	];
 
 	async function load() {
 		try {
@@ -41,52 +17,6 @@
 			error = err instanceof Error ? err.message : 'Failed to load hooks';
 		} finally {
 			loading = false;
-		}
-	}
-
-	async function handleAddWebhook(e: SubmitEvent) {
-		e.preventDefault();
-		whLoading = true;
-		whError = null;
-		try {
-			const hook = await api.createHook({
-				name: whName,
-				type: 'webhook',
-				trigger: whTrigger,
-				url: whUrl,
-				enabled: true
-			});
-			hooks = [...hooks, hook];
-			showWebhookForm = false;
-			whName = '';
-			whUrl = '';
-		} catch (err) {
-			whError = err instanceof Error ? err.message : 'Failed to add webhook';
-		} finally {
-			whLoading = false;
-		}
-	}
-
-	async function handleAddInternal(e: SubmitEvent) {
-		e.preventDefault();
-		ihLoading = true;
-		ihError = null;
-		try {
-			const hook = await api.createHook({
-				name: ihName,
-				type: 'internal',
-				trigger: ihTrigger,
-				module: ihModule,
-				enabled: true
-			});
-			hooks = [...hooks, hook];
-			showInternalForm = false;
-			ihName = '';
-			ihModule = '';
-		} catch (err) {
-			ihError = err instanceof Error ? err.message : 'Failed to add internal hook';
-		} finally {
-			ihLoading = false;
 		}
 	}
 
@@ -121,88 +51,22 @@
 </svelte:head>
 
 <div class="p-6 max-w-7xl mx-auto">
-	<div class="flex items-center justify-between mb-6">
-		<div>
-			<h1 class="text-2xl font-bold text-gray-100">Hooks</h1>
-			<p class="text-sm text-gray-400 mt-1">Event-driven webhooks and internal handlers</p>
-		</div>
-		<div class="flex gap-2">
-			<button
-				onclick={() => { showWebhookForm = !showWebhookForm; showInternalForm = false; }}
+	<PageHeader title="Hooks" subtitle="Event-driven webhooks and internal handlers">
+		{#snippet actions()}
+			<a
+				href="/hooks/new?type=webhook"
 				class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-medium rounded-lg text-sm transition-colors"
 			>
 				+ Add Webhook
-			</button>
-			<button
-				onclick={() => { showInternalForm = !showInternalForm; showWebhookForm = false; }}
+			</a>
+			<a
+				href="/hooks/new?type=internal"
 				class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium rounded-lg text-sm transition-colors"
 			>
 				+ Add Internal
-			</button>
-		</div>
-	</div>
-
-	{#if showWebhookForm}
-		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-			<h2 class="text-base font-semibold text-gray-100 mb-4">New Webhook</h2>
-			<form onsubmit={handleAddWebhook} class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Name *</label>
-					<input bind:value={whName} required placeholder="my-webhook" class="input w-full" />
-				</div>
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Trigger *</label>
-					<select bind:value={whTrigger} class="input w-full">
-						{#each triggers as t}<option value={t}>{t}</option>{/each}
-					</select>
-				</div>
-				<div class="sm:col-span-2">
-					<label class="block text-xs font-medium text-gray-400 mb-1">URL *</label>
-					<input bind:value={whUrl} required type="url" placeholder="https://example.com/webhook" class="input w-full" />
-				</div>
-				{#if whError}
-					<div class="sm:col-span-2 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">{whError}</div>
-				{/if}
-				<div class="sm:col-span-2 flex gap-3">
-					<button type="submit" disabled={whLoading} class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-cyan-800 text-white font-medium rounded-lg text-sm transition-colors">
-						{whLoading ? 'Adding…' : 'Add Webhook'}
-					</button>
-					<button type="button" onclick={() => (showWebhookForm = false)} class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-lg text-sm transition-colors">Cancel</button>
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if showInternalForm}
-		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-			<h2 class="text-base font-semibold text-gray-100 mb-4">New Internal Hook</h2>
-			<form onsubmit={handleAddInternal} class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Name *</label>
-					<input bind:value={ihName} required placeholder="budget-alerter" class="input w-full" />
-				</div>
-				<div>
-					<label class="block text-xs font-medium text-gray-400 mb-1">Trigger *</label>
-					<select bind:value={ihTrigger} class="input w-full">
-						{#each triggers as t}<option value={t}>{t}</option>{/each}
-					</select>
-				</div>
-				<div class="sm:col-span-2">
-					<label class="block text-xs font-medium text-gray-400 mb-1">Module *</label>
-					<input bind:value={ihModule} required placeholder="hooks/budget_alert" class="input w-full" />
-				</div>
-				{#if ihError}
-					<div class="sm:col-span-2 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">{ihError}</div>
-				{/if}
-				<div class="sm:col-span-2 flex gap-3">
-					<button type="submit" disabled={ihLoading} class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-cyan-800 text-white font-medium rounded-lg text-sm transition-colors">
-						{ihLoading ? 'Adding…' : 'Add Internal Hook'}
-					</button>
-					<button type="button" onclick={() => (showInternalForm = false)} class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-lg text-sm transition-colors">Cancel</button>
-				</div>
-			</form>
-		</div>
-	{/if}
+			</a>
+		{/snippet}
+	</PageHeader>
 
 	{#if error}
 		<div class="rounded-lg bg-red-900/30 border border-red-800 px-4 py-3 text-red-400 text-sm mb-4">{error}</div>
@@ -213,7 +77,11 @@
 	{:else if hooks.length === 0}
 		<div class="text-center py-16 text-gray-500">
 			<p class="text-lg mb-2">No hooks configured</p>
-			<p class="text-sm">Add webhooks or internal handlers to react to events.</p>
+			<p class="text-sm mb-4">Add webhooks or internal handlers to react to events.</p>
+			<div class="flex justify-center gap-4 text-sm">
+				<a href="/hooks/new?type=webhook" class="text-cyan-400 hover:text-cyan-300">Add Webhook →</a>
+				<a href="/hooks/new?type=internal" class="text-cyan-400 hover:text-cyan-300">Add Internal →</a>
+			</div>
 		</div>
 	{:else}
 		<div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -262,6 +130,12 @@
 									>
 										Test
 									</button>
+									<a
+										href="/hooks/{hook.id}/edit"
+										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
+									>
+										Edit
+									</a>
 									{#if deleteConfirm === hook.id}
 										<button onclick={() => handleDelete(hook.id)} class="px-2.5 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded-md transition-colors">Confirm</button>
 										<button onclick={() => (deleteConfirm = null)} class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors">Cancel</button>
@@ -277,18 +151,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.input {
-		background: #1f2937;
-		border: 1px solid #374151;
-		border-radius: 0.5rem;
-		padding: 0.5rem 0.75rem;
-		color: #f3f4f6;
-		font-size: 0.875rem;
-		outline: none;
-		transition: border-color 0.15s;
-	}
-	.input:focus { border-color: #06b6d4; }
-	.input::placeholder { color: #6b7280; }
-</style>

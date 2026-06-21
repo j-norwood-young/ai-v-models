@@ -1,9 +1,10 @@
 import { fetch } from "undici";
-import type { DbClient } from "@ai-v-models/core";
+import { buildBackendApiUrl, type DbClient } from "@ai-v-models/core";
 import { eq } from "drizzle-orm";
 import { backends as backendsTable } from "@ai-v-models/core";
 import { backendHealthGauge } from "./metrics.js";
 import { getLogger } from "./logger.js";
+import { backendAuthHeaders } from "./backend-auth.js";
 
 export interface HealthCheckResult {
   backendId: string;
@@ -13,7 +14,14 @@ export interface HealthCheckResult {
 }
 
 export async function checkBackendHealth(
-  backend: { id: string; baseUrl: string; name: string },
+  backend: {
+    id: string;
+    baseUrl: string;
+    name: string;
+    keyMode: string;
+    encryptedApiKey: string | null;
+  },
+  masterKey: Buffer,
   timeoutMs = 5000,
 ): Promise<HealthCheckResult> {
   const start = Date.now();
@@ -21,9 +29,12 @@ export async function checkBackendHealth(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    const res = await fetch(`${backend.baseUrl}/v1/models`, {
+    const res = await fetch(buildBackendApiUrl(backend.baseUrl, "/v1/models"), {
       signal: controller.signal,
-      headers: { "User-Agent": "ai-v-models/healthcheck" },
+      headers: {
+        "User-Agent": "ai-v-models/healthcheck",
+        ...backendAuthHeaders(backend, masterKey),
+      },
     });
     clearTimeout(timer);
 
@@ -46,6 +57,7 @@ export class HealthMonitor {
 
   constructor(
     private readonly db: DbClient,
+    private readonly masterKey: Buffer,
     private readonly intervalSecs: number = 30,
     private readonly timeoutMs: number = 5000,
   ) {}
@@ -73,7 +85,17 @@ export class HealthMonitor {
 
       const results = await Promise.allSettled(
         allBackends.map((b) =>
-          checkBackendHealth({ id: b.id, baseUrl: b.baseUrl, name: b.name }, this.timeoutMs),
+          checkBackendHealth(
+            {
+              id: b.id,
+              baseUrl: b.baseUrl,
+              name: b.name,
+              keyMode: b.keyMode,
+              encryptedApiKey: b.encryptedApiKey,
+            },
+            this.masterKey,
+            this.timeoutMs,
+          ),
         ),
       );
 

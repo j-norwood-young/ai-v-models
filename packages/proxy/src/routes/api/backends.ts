@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { fetch } from "undici";
 import { backends as backendsTable } from "@ai-v-models/core";
-import { decrypt, encrypt } from "@ai-v-models/core";
+import { encrypt } from "@ai-v-models/core";
 import type { AppContext } from "../../context.js";
+import { checkBackendHealth } from "../../health.js";
 
 export async function backendsRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
   // List all backends
@@ -125,35 +125,42 @@ export async function backendsRoutes(app: FastifyInstance, ctx: AppContext): Pro
       .get();
     if (!backend) return reply.status(404).send({ error: "Backend not found" });
 
-    const start = Date.now();
-    try {
-      const headers: Record<string, string> = {};
-      if (backend.keyMode === "abstraction" && backend.encryptedApiKey) {
-        headers["Authorization"] = `Bearer ${decrypt(backend.encryptedApiKey, ctx.masterKey)}`;
-      }
+    const result = await checkBackendHealth(
+      {
+        id: backend.id,
+        baseUrl: backend.baseUrl,
+        name: backend.name,
+        keyMode: backend.keyMode,
+        encryptedApiKey: backend.encryptedApiKey,
+      },
+      ctx.masterKey,
+      10000,
+    );
 
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 10000);
-      const res = await fetch(`${backend.baseUrl}/v1/models`, {
-        headers,
-        signal: controller.signal,
-      });
+    const now = Date.now();
+    await ctx.db.db
+      .update(backendsTable)
+      .set({
+        lastHealthCheck: now,
+        lastHealthStatus: result.status,
+        lastLatencyMs: result.latencyMs,
+        updatedAt: now,
+      })
+      .where(eq(backendsTable.id, backend.id))
+      .run();
 
-      const latencyMs = Date.now() - start;
-      const models = res.ok ? ((await res.json()) as Record<string, unknown>)["data"] : null;
+    ctx.sse.broadcast("backend-health", {
+      backendId: backend.id,
+      status: result.status,
+      latencyMs: result.latencyMs,
+    });
 
-      return {
-        success: res.ok,
-        statusCode: res.status,
-        latencyMs,
-        models: Array.isArray(models) ? (models as Array<Record<string, unknown>>).map((m) => m["id"]) : [],
-      };
-    } catch (err) {
-      return {
-        success: false,
-        latencyMs: Date.now() - start,
-        error: err instanceof Error ? err.message : String(err),
-      };
-    }
+    return {
+      success: result.status !== "unhealthy",
+      statusCode: result.status === "unhealthy" ? 0 : 200,
+      latencyMs: result.latencyMs,
+      health: result.status,
+      error: result.error,
+    };
   });
 }

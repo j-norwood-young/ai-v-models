@@ -1,24 +1,17 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { apiFetch } from "@ai-v-models/core/http";
 import { z } from "zod";
 
 const BASE_URL = process.env["AVM_URL"] ?? "http://localhost:4000";
 const TOKEN = process.env["AVM_ADMIN_TOKEN"];
 
 async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
   if (TOKEN) headers["Authorization"] = `Bearer ${TOKEN}`;
 
-  const fetchOpts: RequestInit = { method, headers };
-  if (body !== undefined) fetchOpts.body = JSON.stringify(body);
-  const res = await fetch(`${BASE_URL}${path}`, fetchOpts);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`API ${res.status}: ${err}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  return apiFetch<T>(`${BASE_URL}${path}`, { method, headers, body });
 }
 
 const server = new McpServer({
@@ -118,7 +111,8 @@ server.tool(
   "Create an API key",
   {
     name: z.string().describe("Key name/label"),
-    allowedModels: z.array(z.string()).optional().describe("Allowed model IDs (null = all)"),
+    allowedModels: z.array(z.string()).optional().describe("Allowed v-model IDs (null = all)"),
+    allowedBackends: z.array(z.string()).optional().describe("Allowed backend IDs for pass-through (null = all)"),
     rateLimitRpm: z.number().int().optional(),
     tokenBudgetDay: z.number().int().optional(),
     tokenBudgetMonth: z.number().int().optional(),

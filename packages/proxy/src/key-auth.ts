@@ -3,6 +3,11 @@ import { eq, and, gt } from "drizzle-orm";
 import type { DbClient } from "@ai-v-models/core";
 import { apiKeys, tokenBudgetCounters } from "@ai-v-models/core";
 import type { ApiKey } from "@ai-v-models/core";
+import {
+  isBackendAllowed,
+  isVModelAllowed,
+  parseAllowedList,
+} from "@ai-v-models/core";
 import { rateLimitHitsTotal } from "./metrics.js";
 import { getLogger } from "./logger.js";
 
@@ -98,18 +103,32 @@ export class KeyAuthenticator {
     return { success: true, key: matchedKey };
   }
 
-  async checkModelAccess(
+  async checkVModelAccess(
     key: ApiKey,
-    modelId: string,
+    vmodelId: string,
     capabilities: { tools?: boolean; vision?: boolean; embeddings?: boolean },
   ): Promise<{ allowed: true } | { allowed: false; error: string }> {
-    if (key.allowedModels !== null) {
-      const allowed = JSON.parse(key.allowedModels) as string[];
-      if (!allowed.includes(modelId)) {
-        return { allowed: false, error: `Model ${modelId} not allowed for this key` };
-      }
+    if (!isVModelAllowed(parseAllowedList(key.allowedModels), vmodelId)) {
+      return { allowed: false, error: `Virtual model ${vmodelId} not allowed for this key` };
     }
+    return this.checkCapabilities(key, capabilities);
+  }
 
+  async checkBackendAccess(
+    key: ApiKey,
+    backendId: string,
+    capabilities: { tools?: boolean; vision?: boolean; embeddings?: boolean },
+  ): Promise<{ allowed: true } | { allowed: false; error: string }> {
+    if (!isBackendAllowed(parseAllowedList(key.allowedBackends), backendId)) {
+      return { allowed: false, error: "Pass-through backend not allowed for this key" };
+    }
+    return this.checkCapabilities(key, capabilities);
+  }
+
+  private checkCapabilities(
+    key: ApiKey,
+    capabilities: { tools?: boolean; vision?: boolean; embeddings?: boolean },
+  ): { allowed: true } | { allowed: false; error: string } {
     if (capabilities.tools && !key.allowToolCalling) {
       return { allowed: false, error: "Tool calling not allowed for this key" };
     }
