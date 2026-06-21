@@ -11,6 +11,7 @@ COPY packages/hooks-sdk/package.json ./packages/hooks-sdk/
 COPY packages/cli/package.json ./packages/cli/
 COPY packages/mcp/package.json ./packages/mcp/
 COPY apps/web/package.json ./apps/web/
+COPY docs/package.json ./docs/
 RUN pnpm install --frozen-lockfile
 
 # Build all packages
@@ -33,9 +34,10 @@ COPY --from=builder /app/packages/hooks-sdk ./packages/hooks-sdk
 COPY --from=builder /app/packages/cli ./packages/cli
 COPY --from=builder /app/packages/mcp ./packages/mcp
 COPY --from=builder /app/apps/web/build ./apps/web/build
+COPY --from=builder /app/docs/.vitepress/dist ./docs/.vitepress/dist
 
 EXPOSE 4000
 VOLUME ["/data"]
-ENV AVM_DATA_DIR=/data
+ENV AIVM_DATA_DIR=/data
 
 CMD ["node", "packages/proxy/dist/index.js"]

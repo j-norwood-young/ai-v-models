@@ -4,8 +4,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { apiFetch } from "@ai-v-models/core/http";
 import { z } from "zod";
 
-const BASE_URL = process.env["AVM_URL"] ?? "http://localhost:4000";
-const TOKEN = process.env["AVM_ADMIN_TOKEN"];
+const BASE_URL = process.env["AIVM_URL"] ?? "http://localhost:4000";
+const TOKEN = process.env["AIVM_ADMIN_TOKEN"];
 
 async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};

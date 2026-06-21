@@ -63,12 +63,12 @@ export class KeyAuthenticator {
   async authenticate(rawKey: string): Promise<AuthResult> {
     const log = getLogger();
 
-    if (!rawKey.startsWith("avm-sk-")) {
+    if (!rawKey.startsWith("aivm-sk-")) {
       return { success: false, status: 401, error: "Invalid key format", code: "invalid_key" };
     }
 
     const keyHash = hashKey(rawKey);
-    const prefix = rawKey.slice(0, 12);
+    const prefix = rawKey.slice(0, 13);
 
     // Find candidate keys by prefix (avoids full table scan)
     const candidates = await this.db.db

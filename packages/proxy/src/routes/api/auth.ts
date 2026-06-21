@@ -177,14 +177,14 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
   );
 
   app.post("/api/v1/auth/logout", async (req, reply) => {
-    const sessionToken = req.cookies["avm_session"];
+    const sessionToken = req.cookies["aivm_session"];
     if (sessionToken) {
       await ctx.db.db
         .delete(sessions)
         .where(eq(sessions.token, sessionToken))
         .run();
     }
-    reply.clearCookie("avm_session");
+    reply.clearCookie("aivm_session");
     return { success: true };
   });
 

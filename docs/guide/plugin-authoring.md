@@ -6,7 +6,7 @@ Plugins are TypeScript packages that hook into ai-v-models' request/response pip
 
 ```bash
 # Scaffold a new plugin
-avm plugin create my-plugin
+aivm plugin create my-plugin
 
 cd my-plugin
 npm install
@@ -15,16 +15,16 @@ npm install
 npm run build
 
 # Install into the proxy
-avm plugin install local:$(pwd)
+aivm plugin install local:$(pwd)
 
 # Bind it globally
-avm plugin bind <pluginId> --scope global
+aivm plugin bind <pluginId> --scope global
 ```
 
 ## Plugin structure
 
 A plugin is a Node.js package with:
-- An `"avm-plugin"` key in `package.json` (the manifest)
+- An `"aivm-plugin"` key in `package.json` (the manifest)
 - A default ESM export from the main entry (`definePlugin(...)`)
 
 ```ts
@@ -69,7 +69,7 @@ Config values are available as `ctx.config.<field>` inside your hooks, fully typ
 
 ## The `package.json` manifest
 
-The `"avm-plugin"` key is read at install time and must stay in sync with your `definePlugin` config:
+The `"aivm-plugin"` key is read at install time and must stay in sync with your `definePlugin` config:
 
 ```json
 {
@@ -77,7 +77,7 @@ The `"avm-plugin"` key is read at install time and must stay in sync with your `
   "version": "1.0.0",
   "type": "module",
   "main": "dist/index.js",
-  "avm-plugin": {
+  "aivm-plugin": {
     "name": "Talk like a Pirate",
     "description": "Makes responses use pirate speak",
     "version": "1.0.0",
@@ -155,9 +155,9 @@ A plugin can be bound to:
 Each binding can have its own config. Multiple bindings are executed in `order` (ascending).
 
 ```bash
-avm plugin bind <pluginId> --scope global
-avm plugin bind <pluginId> --scope vmodel --scope-id my-smart-model
-avm plugin bind <pluginId> --scope backend --scope-id <backendId> --order 10
+aivm plugin bind <pluginId> --scope global
+aivm plugin bind <pluginId> --scope vmodel --scope-id my-smart-model
+aivm plugin bind <pluginId> --scope backend --scope-id <backendId> --order 10
 ```
 
 ## Publishing
@@ -170,10 +170,10 @@ npm run build
 npm publish --access public
 
 # Anyone can then install via:
-avm plugin install npm:@my-org/my-plugin
+aivm plugin install npm:@my-org/my-plugin
 
 # Or from GitHub:
-avm plugin install github:my-org/my-plugin-repo
+aivm plugin install github:my-org/my-plugin-repo
 ```
 
 ## Sandboxing constraints

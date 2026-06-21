@@ -14,7 +14,7 @@ Built-in defaults     (lowest)
 
 ## config.yaml
 
-Located at `~/.ai-reverse-proxy/config.yaml` by default (override with `AVM_DATA_DIR`).
+Located at `~/.ai-reverse-proxy/config.yaml` by default (override with `AIVM_DATA_DIR`).
 
 ```yaml
 server:
@@ -45,22 +45,18 @@ security:
 
 ## Environment variables
 
+See [Environment Variables](./env-vars) for the full reference.
+
+Quick reference:
+
 | Variable | Default | Description |
 |---|---|---|
-| `AVM_HOST` | `0.0.0.0` | Listen host |
-| `AVM_PORT` | `4000` | Listen port |
-| `AVM_DATA_DIR` | `~/.ai-reverse-proxy` | Data directory |
-| `AVM_LOG_LEVEL` | `info` | Log level |
-| `AVM_LOG_FORMAT` | `json` | Log format |
-| `AVM_METRICS_ENABLED` | `true` | Enable Prometheus metrics |
-| `AVM_OTEL_ENDPOINT` | - | OpenTelemetry OTLP endpoint |
-| `AVM_HEALTH_CHECK_INTERVAL` | `30` | Health check interval (seconds) |
-| `AVM_SESSION_SECRET` | - | Session cookie signing secret |
-| `AVM_ADMIN_USER` | `admin` | Initial admin username (first run only) |
-| `AVM_ADMIN_PASSWORD` | `admin` | Initial admin password (first run only; must be changed on first login) |
-| `AVM_TLS_CERT` | - | Path to TLS certificate |
-| `AVM_TLS_KEY` | - | Path to TLS private key |
-| `AVM_CORS_ORIGINS` | `http://localhost:5173` | CORS allowed origins |
+| `AIVM_HOST` | `0.0.0.0` | Listen host |
+| `AIVM_PORT` | `4000` | Listen port |
+| `AIVM_DATA_DIR` | `~/.ai-reverse-proxy` | Data directory |
+| `AIVM_LOG_LEVEL` | `info` | Log level |
+| `AIVM_SESSION_SECRET` | — | Session cookie signing secret |
+| `AIVM_ADMIN_PASSWORD` | `admin` | Initial admin password (first run only) |
 
 ## Data directory structure
 

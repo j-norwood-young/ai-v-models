@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch"
   },
-  "avm-plugin": {
+  "aivm-plugin": {
     "name": "Caveman",
     "description": "Compress AI output tokens by ~65% using caveman-style terse communication. Why use many token when few do trick.",
     "version": "1.0.0",

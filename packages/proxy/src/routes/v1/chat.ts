@@ -183,7 +183,7 @@ export async function chatRoutes(app: FastifyInstance, ctx: AppContext): Promise
       // ctx.ai.complete: re-enter the proxy's backend logic without running plugins again
       aiComplete: async (opts) => {
         const { fetch: _fetch } = await import("undici");
-        const aiBody = { ...opts, __avmInternal: true };
+        const aiBody = { ...opts, __aivmInternal: true };
         const res = await _fetch(buildBackendApiUrl(selected.backend.baseUrl, "/v1/chat/completions"), {
           method: "POST",
           headers: {

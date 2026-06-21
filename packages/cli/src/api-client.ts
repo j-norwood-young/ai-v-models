@@ -15,7 +15,7 @@ export class ApiClient {
       headers["Authorization"] = `Bearer ${this.opts.token}`;
     }
     if (this.opts.sessionCookie) {
-      headers["Cookie"] = `avm_session=${this.opts.sessionCookie}`;
+      headers["Cookie"] = `aivm_session=${this.opts.sessionCookie}`;
     }
     return headers;
   }
@@ -43,7 +43,7 @@ export class ApiClient {
 }
 
 export function createApiClient(baseUrl: string): ApiClient {
-  const token = process.env["AIVM_ADMIN_TOKEN"] ?? process.env["AVM_ADMIN_TOKEN"];
+  const token = process.env["AIVM_ADMIN_TOKEN"];
   return new ApiClient({ baseUrl, token, sessionCookie: undefined });
 }
 

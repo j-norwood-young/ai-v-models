@@ -5,6 +5,7 @@ import { backends as backendsTable } from "@ai-v-models/core";
 import { backendHealthGauge } from "./metrics.js";
 import { getLogger } from "./logger.js";
 import { backendAuthHeaders } from "./backend-auth.js";
+import type { SseEmitter } from "./sse.js";
 
 export interface HealthCheckResult {
   backendId: string;
@@ -60,6 +61,7 @@ export class HealthMonitor {
     private readonly masterKey: Buffer,
     private readonly intervalSecs: number = 30,
     private readonly timeoutMs: number = 5000,
+    private readonly sse?: SseEmitter,
   ) {}
 
   start(): void {
@@ -124,6 +126,8 @@ export class HealthMonitor {
           }
         }
       }
+
+      this.sse?.broadcast("backend-health", { action: "poll" });
     } catch (err) {
       log.error({ err }, "Error running health checks");
     }

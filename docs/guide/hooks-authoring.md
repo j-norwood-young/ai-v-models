@@ -33,11 +33,11 @@ export default hook;
 
 ```json
 {
-  "name": "my-avm-hook",
+  "name": "my-aivm-hook",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
-  "avm-hook": {
+  "aivm-hook": {
     "name": "My System Prompt Hook",
     "description": "Prepends a system prompt prefix",
     "trigger": "pre-request",
@@ -55,7 +55,7 @@ export default hook;
 
 ```bash
 # Install from NPM
-aivm hook add-internal --name my-hook --module my-avm-hook --trigger pre-request
+aivm hook add-internal --name my-hook --module my-aivm-hook --trigger pre-request
 
 # Install from local path
 aivm hook add-internal --name my-hook --module /path/to/hook/dist/index.js --trigger pre-request
@@ -98,7 +98,7 @@ Response body is ignored for streaming v-models.
 
 ### Webhook signature verification
 
-All webhooks include an `X-AVM-Signature: sha256=<hmac>` header when a `webhookSecret` is configured. Verify it in your handler:
+All webhooks include an `X-AIVM-Signature: sha256=<hmac>` header when a `webhookSecret` is configured. Verify it in your handler:
 
 ```typescript
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -114,7 +114,7 @@ function verifySignature(body: string, signature: string, secret: string): boole
 ```bash
 aivm hook add-webhook \
   --name my-webhook \
-  --url https://my-server.example.com/avm-hook \
+  --url https://my-server.example.com/aivm-hook \
   --trigger pre-request \
   --secret my-signing-secret \
   --timeout 5000

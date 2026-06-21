@@ -53,23 +53,23 @@ export function generateToken(bytes = 32): string {
   return randomBytes(bytes).toString("hex");
 }
 
-/** Generate a bearer key in the format "avm-sk-<random>" */
+/** Generate a bearer key in the format "aivm-sk-<random>" */
 export function generateApiKey(): { key: string; prefix: string } {
   const rand = randomBytes(24).toString("base64url");
-  const key = `avm-sk-${rand}`;
-  const prefix = key.slice(0, 12); // "avm-sk-xxxx"
+  const key = `aivm-sk-${rand}`;
+  const prefix = key.slice(0, 13); // "aivm-sk-xxxx"
   return { key, prefix };
 }
 
-/** Generate an admin API token in the format "avm-at-<random>" */
+/** Generate an admin API token in the format "aivm-at-<random>" */
 export function generateAdminToken(): { token: string; prefix: string } {
   const rand = randomBytes(24).toString("base64url");
-  const token = `avm-at-${rand}`;
-  const prefix = token.slice(0, 12); // "avm-at-xxxx"
+  const token = `aivm-at-${rand}`;
+  const prefix = token.slice(0, 13); // "aivm-at-xxxx"
   return { token, prefix };
 }
 
-export const ADMIN_TOKEN_PREFIX = "avm-at-";
+export const ADMIN_TOKEN_PREFIX = "aivm-at-";
 
 /** Hash a token with SHA-256 for storage (not for passwords—use argon2 for those). */
 export function hashToken(token: string): string {

@@ -4,7 +4,7 @@ ai-v-models uses its own API keys for authenticating users/applications. These a
 
 ## Key format
 
-Keys have the format: `avm-sk-<random>` (e.g. `avm-sk-Xn7kP2mQ9vZw4aB`).
+Keys have the format: `aivm-sk-<random>` (e.g. `aivm-sk-Xn7kP2mQ9vZw4aB`).
 
 Only a SHA-256 hash is stored. The key is shown only once at creation.
 
@@ -57,14 +57,14 @@ Budgets use rolling periods. At the start of each period (hour/day/week/month), 
 ## Suspending and resuming
 
 ```bash
-aivm key suspend avm-sk-xxxx --reason "Over usage"
-aivm key resume avm-sk-xxxx
+aivm key suspend aivm-sk-xxxx --reason "Over usage"
+aivm key resume aivm-sk-xxxx
 ```
 
 ## Per-key logs
 
 ```bash
-aivm key logs avm-sk-xxxx --limit 50
+aivm key logs aivm-sk-xxxx --limit 50
 ```
 
 Or via API:

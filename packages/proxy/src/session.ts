@@ -60,7 +60,7 @@ export async function createSession(
     })
     .run();
 
-  reply.setCookie("avm_session", sessionToken, {
+  reply.setCookie("aivm_session", sessionToken, {
     httpOnly: true,
     secure: req.protocol === "https",
     sameSite: "lax",

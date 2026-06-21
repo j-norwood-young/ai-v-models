@@ -12,7 +12,7 @@ import { registerAdminTokenCommands } from "./commands/admin-tokens.js";
 import { registerPromptCommands } from "./commands/prompt.js";
 import { registerCompletionCommands, runDynamicComplete } from "./commands/completion.js";
 
-const DEFAULT_URL = process.env["AIVM_URL"] ?? process.env["AVM_URL"] ?? "http://localhost:4000";
+const DEFAULT_URL = process.env["AIVM_URL"] ?? "http://localhost:4000";
 
 function resolveBaseUrl(args: string[]): string {
   const urlFlagIndex = args.findIndex((arg) => arg === "-u" || arg === "--url");
@@ -23,7 +23,7 @@ function resolveBaseUrl(args: string[]): string {
 function resolveAdminToken(args: string[]): string | undefined {
   const tokenFlagIndex = args.findIndex((arg) => arg === "-t" || arg === "--token");
   if (tokenFlagIndex >= 0 && args[tokenFlagIndex + 1]) return args[tokenFlagIndex + 1];
-  return process.env["AIVM_ADMIN_TOKEN"] ?? process.env["AVM_ADMIN_TOKEN"];
+  return process.env["AIVM_ADMIN_TOKEN"];
 }
 
 async function main(): Promise<void> {
@@ -45,7 +45,7 @@ program
   .description("AiVM CLI — manage your LLM reverse proxy")
   .version("0.0.1")
   .option("-u, --url <url>", "Proxy URL", DEFAULT_URL)
-  .option("-t, --token <token>", "Admin API token", process.env["AIVM_ADMIN_TOKEN"] ?? process.env["AVM_ADMIN_TOKEN"]);
+  .option("-t, --token <token>", "Admin API token", process.env["AIVM_ADMIN_TOKEN"]);
 
 program.hook("preSubcommand", (thisCmd) => {
   const opts = thisCmd.opts() as { url: string; token?: string };
@@ -102,8 +102,8 @@ program
     const opts = program.opts() as { url: string };
     console.log(chalk.bold("ai-v-models configuration"));
     console.log(`  Proxy URL: ${opts.url}`);
-    console.log(`  Admin token: ${process.env["AIVM_ADMIN_TOKEN"] ?? process.env["AVM_ADMIN_TOKEN"] ? "set" : "not set"}`);
-    console.log(`  API key:     ${process.env["AIVM_API_KEY"] ?? process.env["AVM_API_KEY"] ? "set" : "not set"}`);
+    console.log(`  Admin token: ${process.env["AIVM_ADMIN_TOKEN"] ? "set" : "not set"}`);
+    console.log(`  API key:     ${process.env["AIVM_API_KEY"] ? "set" : "not set"}`);
   });
 
   program.parse();

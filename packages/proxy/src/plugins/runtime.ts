@@ -111,7 +111,7 @@ export class PluginRuntime {
       // Inject host capabilities
       await this.injectCapabilities(ctx, jail, binding, hostCtx);
 
-      // Run the bundle to register __avmPluginDef on globalThis
+      // Run the bundle to register __aivmPluginDef on globalThis
       await script.run(ctx, { timeout: DEFAULT_TIMEOUT_MS });
 
       // Build the plugin context object visible inside the isolate
@@ -131,11 +131,11 @@ export class PluginRuntime {
       // Execute the hook inside the isolate
       const resultJson = await ctx.eval(
         `(async () => {
-          const def = globalThis.__avmPluginDef;
+          const def = globalThis.__aivmPluginDef;
           if (!def || !def.hooks || !def.hooks['${hookName}']) {
             return JSON.stringify(${payloadJson});
           }
-          const ctx = Object.assign({}, ${pluginCtxJson}, __avmCapabilities);
+          const ctx = Object.assign({}, ${pluginCtxJson}, __aivmCapabilities);
           const payload = ${payloadJson};
           const result = await def.hooks['${hookName}'](payload, ctx);
           return JSON.stringify(result != null ? result : payload);
@@ -157,7 +157,7 @@ export class PluginRuntime {
   ): Promise<void> {
     const log = getLogger();
 
-    // __avmCapabilities is merged into ctx inside the isolate
+    // __aivmCapabilities is merged into ctx inside the isolate
     // We expose each capability as an async function reference
 
     // ctx.log
@@ -187,22 +187,22 @@ export class PluginRuntime {
         });
 
     // Build the capabilities glue that wires these references into promise-returning functions
-    await jail.set("__avmLogRef", logFn);
-    await jail.set("__avmAiCompleteRef", aiCompleteFn);
-    await jail.set("__avmFetchRef", fetchFn);
-    await jail.set("__avmCapabilities", undefined); // placeholder
+    await jail.set("__aivmLogRef", logFn);
+    await jail.set("__aivmAiCompleteRef", aiCompleteFn);
+    await jail.set("__aivmFetchRef", fetchFn);
+    await jail.set("__aivmCapabilities", undefined); // placeholder
 
     await ctx.eval(`
-      globalThis.__avmCapabilities = {
-        log: (level, msg, data) => __avmLogRef.apply(undefined, [level, msg, data ? JSON.stringify(data) : undefined]),
+      globalThis.__aivmCapabilities = {
+        log: (level, msg, data) => __aivmLogRef.apply(undefined, [level, msg, data ? JSON.stringify(data) : undefined]),
         ai: {
           complete: async (opts) => {
-            const result = await __avmAiCompleteRef.apply(undefined, [JSON.stringify(opts)], { result: { promise: true } });
+            const result = await __aivmAiCompleteRef.apply(undefined, [JSON.stringify(opts)], { result: { promise: true } });
             return JSON.parse(result);
           },
         },
         fetch: async (url, init) => {
-          const result = await __avmFetchRef.apply(undefined, [url, init ? JSON.stringify(init) : undefined], { result: { promise: true } });
+          const result = await __aivmFetchRef.apply(undefined, [url, init ? JSON.stringify(init) : undefined], { result: { promise: true } });
           return JSON.parse(result);
         },
       };

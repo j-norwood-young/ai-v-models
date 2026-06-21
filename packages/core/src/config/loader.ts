@@ -25,22 +25,22 @@ function envToPartialConfig(): Record<string, unknown> {
   const partial: Record<string, unknown> = {};
 
   const map: Record<string, string[]> = {
-    AVM_HOST: ["server", "host"],
-    AVM_PORT: ["server", "port"],
-    AVM_TLS_CERT: ["server", "tlsCert"],
-    AVM_TLS_KEY: ["server", "tlsKey"],
-    AVM_CORS_ORIGINS: ["server", "corsOrigins"],
-    AVM_LOG_LEVEL: ["log", "level"],
-    AVM_LOG_FORMAT: ["log", "format"],
-    AVM_LOG_FILE: ["log", "file"],
-    AVM_METRICS_ENABLED: ["metrics", "enabled"],
-    AVM_OTEL_ENDPOINT: ["metrics", "otelEndpoint"],
-    AVM_OTEL_SERVICE_NAME: ["metrics", "otelServiceName"],
-    AVM_HEALTH_CHECK_INTERVAL: ["health", "checkIntervalSecs"],
-    AVM_SESSION_SECRET: ["security", "sessionSecret"],
-    AVM_WEBAUTHN_RP_ID: ["security", "webauthnRpId"],
-    AVM_WEBAUTHN_ORIGINS: ["security", "webauthnOrigins"],
-    AVM_DATA_DIR: ["dataDir"],
+    AIVM_HOST: ["server", "host"],
+    AIVM_PORT: ["server", "port"],
+    AIVM_TLS_CERT: ["server", "tlsCert"],
+    AIVM_TLS_KEY: ["server", "tlsKey"],
+    AIVM_CORS_ORIGINS: ["server", "corsOrigins"],
+    AIVM_LOG_LEVEL: ["log", "level"],
+    AIVM_LOG_FORMAT: ["log", "format"],
+    AIVM_LOG_FILE: ["log", "file"],
+    AIVM_METRICS_ENABLED: ["metrics", "enabled"],
+    AIVM_OTEL_ENDPOINT: ["metrics", "otelEndpoint"],
+    AIVM_OTEL_SERVICE_NAME: ["metrics", "otelServiceName"],
+    AIVM_HEALTH_CHECK_INTERVAL: ["health", "checkIntervalSecs"],
+    AIVM_SESSION_SECRET: ["security", "sessionSecret"],
+    AIVM_WEBAUTHN_RP_ID: ["security", "webauthnRpId"],
+    AIVM_WEBAUTHN_ORIGINS: ["security", "webauthnOrigins"],
+    AIVM_DATA_DIR: ["dataDir"],
   };
 
   for (const [envKey, path] of Object.entries(map)) {
@@ -90,7 +90,7 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   }
 
   // 2. Determine data dir (needed to find default config.yaml)
-  const dataDir = process.env["AVM_DATA_DIR"] ?? defaultDataDir();
+  const dataDir = process.env["AIVM_DATA_DIR"] ?? defaultDataDir();
 
   // 3. Load config.yaml
   const configFile = opts.configFile ?? join(dataDir, "config.yaml");
@@ -104,7 +104,7 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   const envConfig = envToPartialConfig();
 
   // Dev mode uses a separate default port so `pnpm dev` and `pnpm start` can run together
-  if (process.env["AVM_DEV"] === "1" && process.env["AVM_PORT"] === undefined) {
+  if (process.env["AIVM_DEV"] === "1" && process.env["AIVM_PORT"] === undefined) {
     envConfig["server"] = deepMerge(
       (envConfig["server"] as Record<string, unknown>) ?? {},
       { port: DEV_PORT },

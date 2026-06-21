@@ -15,38 +15,38 @@ describe("Configuration loading", () => {
   });
 
   it("should respect environment variables", () => {
-    process.env["AVM_PORT"] = "5000";
-    process.env["AVM_LOG_LEVEL"] = "debug";
+    process.env["AIVM_PORT"] = "5000";
+    process.env["AIVM_LOG_LEVEL"] = "debug";
     const config = loadConfig({ configFile: "/nonexistent/config.yaml" });
     expect(config.server.port).toBe(5000);
     expect(config.log.level).toBe("debug");
     // Cleanup
-    delete process.env["AVM_PORT"];
-    delete process.env["AVM_LOG_LEVEL"];
+    delete process.env["AIVM_PORT"];
+    delete process.env["AIVM_LOG_LEVEL"];
   });
 
-  it("should use dev port when AVM_DEV=1", () => {
-    process.env["AVM_DEV"] = "1";
+  it("should use dev port when AIVM_DEV=1", () => {
+    process.env["AIVM_DEV"] = "1";
     const config = loadConfig({ configFile: "/nonexistent/config.yaml" });
     expect(config.server.port).toBe(4001);
-    delete process.env["AVM_DEV"];
+    delete process.env["AIVM_DEV"];
   });
 
-  it("should allow AVM_PORT to override dev default", () => {
-    process.env["AVM_DEV"] = "1";
-    process.env["AVM_PORT"] = "5000";
+  it("should allow AIVM_PORT to override dev default", () => {
+    process.env["AIVM_DEV"] = "1";
+    process.env["AIVM_PORT"] = "5000";
     const config = loadConfig({ configFile: "/nonexistent/config.yaml" });
     expect(config.server.port).toBe(5000);
-    delete process.env["AVM_DEV"];
-    delete process.env["AVM_PORT"];
+    delete process.env["AIVM_DEV"];
+    delete process.env["AIVM_PORT"];
   });
 
   it("should coerce string env vars to numbers", () => {
-    process.env["AVM_PORT"] = "3999";
+    process.env["AIVM_PORT"] = "3999";
     const config = loadConfig({ configFile: "/nonexistent/config.yaml" });
     expect(typeof config.server.port).toBe("number");
     expect(config.server.port).toBe(3999);
-    delete process.env["AVM_PORT"];
+    delete process.env["AIVM_PORT"];
   });
 });
 
@@ -54,7 +54,7 @@ describe("Crypto", () => {
   let tmpDir: string;
 
   it("should generate and persist master key", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "avm-crypto-test-"));
+    tmpDir = mkdtempSync(join(tmpdir(), "aivm-crypto-test-"));
     const key1 = getMasterKey(tmpDir);
     const key2 = getMasterKey(tmpDir); // Should load same key
     expect(key1.length).toBe(32);

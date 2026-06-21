@@ -36,7 +36,7 @@ Data is stored in `~/.ai-reverse-proxy/`. On first run an admin user is created 
 Environment variables:
 
 ```bash
-AVM_PORT=8080 AVM_LOG_LEVEL=info pnpm start
+AIVM_PORT=8080 AIVM_LOG_LEVEL=info pnpm start
 ```
 
 Or `~/.ai-reverse-proxy/config.yaml`:
@@ -90,7 +90,7 @@ pnpm aivm key create --name "limited-app" --rpm 60 --day-budget 100000 --expires
 
 ```bash
 curl http://localhost:4000/v1/chat/completions \
-  -H "Authorization: Bearer avm-sk-YOUR_KEY" \
+  -H "Authorization: Bearer aivm-sk-YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen3.5-35b:bob:lmstudio",

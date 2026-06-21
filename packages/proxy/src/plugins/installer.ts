@@ -47,11 +47,11 @@ export async function installPlugin(
       ? source.slice("npm:".length)
       : `github:${source.slice("github:".length)}`;
 
-    const tmpInstallDir = join(tmpdir(), `avm-plugin-install-${pluginId}`);
+    const tmpInstallDir = join(tmpdir(), `aivm-plugin-install-${pluginId}`);
     mkdirSync(tmpInstallDir, { recursive: true });
 
     // Create a minimal package.json for the install sandbox
-    const sandboxPkg = JSON.stringify({ name: "avm-install-sandbox", type: "module", private: true });
+    const sandboxPkg = JSON.stringify({ name: "aivm-install-sandbox", type: "module", private: true });
     require("node:fs").writeFileSync(join(tmpInstallDir, "package.json"), sandboxPkg);
 
     log.info({ source, installSpec }, "Installing plugin package");
@@ -67,22 +67,22 @@ export async function installPlugin(
     pkgJson = readPkgJson(packageDir);
   }
 
-  // Read and validate the "avm-plugin" manifest from package.json
-  const avmPlugin = pkgJson["avm-plugin"] as Partial<PluginManifest> | undefined;
-  if (!avmPlugin) {
+  // Read and validate the "aivm-plugin" manifest from package.json
+  const aivmPlugin = pkgJson["aivm-plugin"] as Partial<PluginManifest> | undefined;
+  if (!aivmPlugin) {
     throw new Error(
-      `Package missing "avm-plugin" key in package.json. Is this an ai-v-models plugin? See docs for the required manifest format.`,
+      `Package missing "aivm-plugin" key in package.json. Is this an ai-v-models plugin? See docs for the required manifest format.`,
     );
   }
 
-  const rawDesc = avmPlugin.description ?? (pkgJson["description"] as string | undefined);
+  const rawDesc = aivmPlugin.description ?? (pkgJson["description"] as string | undefined);
   const manifest: PluginManifest = {
-    name: (avmPlugin.name ?? pkgJson["name"] ?? "unknown") as string,
+    name: (aivmPlugin.name ?? pkgJson["name"] ?? "unknown") as string,
     ...(rawDesc !== undefined ? { description: rawDesc } : {}),
-    version: (avmPlugin.version ?? pkgJson["version"] ?? "0.0.0") as string,
-    ...(avmPlugin.configSchema !== undefined ? { configSchema: avmPlugin.configSchema } : {}),
-    needsResponseBuffer: avmPlugin.needsResponseBuffer ?? false,
-    hooks: avmPlugin.hooks ?? [],
+    version: (aivmPlugin.version ?? pkgJson["version"] ?? "0.0.0") as string,
+    ...(aivmPlugin.configSchema !== undefined ? { configSchema: aivmPlugin.configSchema } : {}),
+    needsResponseBuffer: aivmPlugin.needsResponseBuffer ?? false,
+    hooks: aivmPlugin.hooks ?? [],
   };
 
   // Find the main entry point for bundling
@@ -98,14 +98,14 @@ export async function installPlugin(
     bundle: true,
     platform: "neutral",
     format: "iife",
-    globalName: "__avmPlugin",
+    globalName: "__aivmPlugin",
     outfile: bundlePath,
     define: { "process.env.NODE_ENV": '"production"' },
-    // After the IIFE, expose the default export as __avmPluginDef
+    // After the IIFE, expose the default export as __aivmPluginDef
     footer: {
       js: [
-        "if (typeof __avmPlugin !== 'undefined') {",
-        "  globalThis.__avmPluginDef = __avmPlugin && __avmPlugin.default ? __avmPlugin.default : __avmPlugin;",
+        "if (typeof __aivmPlugin !== 'undefined') {",
+        "  globalThis.__aivmPluginDef = __aivmPlugin && __aivmPlugin.default ? __aivmPlugin.default : __aivmPlugin;",
         "}",
       ].join("\n"),
     },
@@ -117,7 +117,7 @@ export async function installPlugin(
   return {
     bundlePath,
     manifest,
-    configSchema: avmPlugin.configSchema ? (avmPlugin.configSchema as Record<string, unknown>) : null,
+    configSchema: aivmPlugin.configSchema ? (aivmPlugin.configSchema as Record<string, unknown>) : null,
     needsResponseBuffer: manifest.needsResponseBuffer ?? false,
     version: manifest.version ?? null,
   };

@@ -95,6 +95,8 @@ export async function backendsRoutes(app: FastifyInstance, ctx: AppContext): Pro
         .where(eq(backendsTable.id, req.params.id))
         .get();
 
+      ctx.sse.broadcast("backend-health", { backendId: req.params.id, action: "updated" });
+
       return { ...updated, encryptedApiKey: undefined };
     },
   );
@@ -112,6 +114,8 @@ export async function backendsRoutes(app: FastifyInstance, ctx: AppContext): Pro
       .delete(backendsTable)
       .where(eq(backendsTable.id, req.params.id))
       .run();
+
+    ctx.sse.broadcast("backend-health", { backendId: req.params.id, action: "deleted" });
 
     return reply.status(204).send();
   });

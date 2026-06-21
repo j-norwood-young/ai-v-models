@@ -31,7 +31,7 @@ export interface TestProxy {
 
 export async function startTestProxy(): Promise<TestProxy> {
   const port = await getPort();
-  const dataDir = mkdtempSync(join(tmpdir(), "avm-test-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "aivm-test-"));
   ensureDataDir(dataDir);
 
   const dbPath = join(dataDir, "data.db");

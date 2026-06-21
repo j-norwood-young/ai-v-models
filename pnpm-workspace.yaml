@@ -2,6 +2,7 @@ packages:
   - "packages/*"
   - "apps/*"
   - "tools/*"
+  - "docs"
   - "tests/e2e"
   - "examples/plugins/*"
 allowBuilds:

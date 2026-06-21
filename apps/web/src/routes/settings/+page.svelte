@@ -468,7 +468,7 @@
 		<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
 			<h2 class="text-base font-semibold text-gray-100 mb-4">Admin API tokens</h2>
 			<p class="text-xs text-gray-500 mb-4">
-				Bearer tokens for CLI and automation (<code class="text-gray-400">avm-at-…</code>).
+				Bearer tokens for CLI and automation (<code class="text-gray-400">aivm-at-…</code>).
 				Set <code class="text-gray-400">AIVM_ADMIN_TOKEN</code> or pass <code class="text-gray-400">-t</code> to the CLI.
 			</p>
 
@@ -614,13 +614,26 @@
 					Open →
 				</a>
 			</div>
-			<div class="flex items-center justify-between py-2">
+			<div class="flex items-center justify-between py-2 border-b border-gray-800">
 				<div>
-					<p class="text-sm text-gray-200">API Documentation</p>
-					<p class="text-xs text-gray-500">OpenAPI/Swagger spec</p>
+					<p class="text-sm text-gray-200">Documentation</p>
+					<p class="text-xs text-gray-500">Guides, configuration, and deployment</p>
 				</div>
 				<a
-					href="/api/docs"
+					href="/docs/"
+					target="_blank"
+					class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+				>
+					Open →
+				</a>
+			</div>
+			<div class="flex items-center justify-between py-2">
+				<div>
+					<p class="text-sm text-gray-200">API Reference</p>
+					<p class="text-xs text-gray-500">Interactive OpenAPI / Swagger UI</p>
+				</div>
+				<a
+					href="/api/docs/"
 					target="_blank"
 					class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
 				>

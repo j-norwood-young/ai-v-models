@@ -32,7 +32,7 @@ Continue with [Quick Start](./quickstart.md).
 docker-compose up
 ```
 
-Data persists in the `avm-data` volume. Configuration can be passed via environment variables — see [Configuration](./configuration.md).
+Data persists in the `aivm-data` volume. Configuration can be passed via environment variables — see [Configuration](./configuration.md).
 
 ## Data directory
 
@@ -46,7 +46,7 @@ On first start, ai-v-models creates `~/.ai-reverse-proxy/`:
   logs/            # Rotating log files
 ```
 
-Override the location with `AVM_DATA_DIR`.
+Override the location with `AIVM_DATA_DIR`.
 
 ## Upgrading
 

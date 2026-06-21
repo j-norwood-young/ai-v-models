@@ -47,6 +47,7 @@ export async function metricsApiRoutes(app: FastifyInstance, ctx: AppContext): P
         name: b.displayName || b.name,
         health: (b.lastHealthStatus ?? "unknown") as "healthy" | "degraded" | "unhealthy" | "unknown",
         latency_ms: b.lastLatencyMs ?? undefined,
+        enabled: b.enabled,
       })),
     };
   });

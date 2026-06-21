@@ -18,6 +18,8 @@ import { webauthnRoutes } from "./routes/api/webauthn.js";
 import { settingsRoutes } from "./routes/api/settings.js";
 import { eventsRoutes } from "./routes/api/events.js";
 import { registerAdminAuthHook } from "./admin-auth-hook.js";
+import { registerDocsSite } from "./docs-site.js";
+import { registerOpenApiDocs } from "./openapi.js";
 import { registerWebUi } from "./web-ui.js";
 import { getLogger } from "./logger.js";
 
@@ -52,7 +54,7 @@ export async function createApp(ctx: AppContext) {
 
   // Cookies
   await app.register(cookie, {
-    secret: ctx.config.security.sessionSecret ?? "avm-change-me-in-production",
+    secret: ctx.config.security.sessionSecret ?? "aivm-change-me-in-production",
   });
 
   // Rate limiting for login endpoint
@@ -119,6 +121,10 @@ export async function createApp(ctx: AppContext) {
   registerAdminAuthHook(app, ctx);
   await settingsRoutes(app, ctx);
   await eventsRoutes(app, ctx);
+
+  // OpenAPI/Swagger UI and VitePress documentation (before admin UI catch-all)
+  await registerOpenApiDocs(app);
+  await registerDocsSite(app);
 
   // Admin UI (production build) — catch-all, registered last
   await registerWebUi(app);

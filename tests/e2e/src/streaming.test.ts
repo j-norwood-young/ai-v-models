@@ -136,7 +136,7 @@ describe("Streaming proxy", () => {
     const res = await fetch(`${proxy.url}/v1/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: "Bearer avm-sk-invalid-key-xyz",
+        Authorization: "Bearer aivm-sk-invalid-key-xyz",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

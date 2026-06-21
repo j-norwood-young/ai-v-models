@@ -6,13 +6,13 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - avm-data:/data
+      - aivm-data:/data
     environment:
-      AVM_HOST: "0.0.0.0"
-      AVM_PORT: "4000"
-      AVM_DATA_DIR: "/data"
-      AVM_LOG_LEVEL: "info"
-      AVM_LOG_FORMAT: "json"
+      AIVM_HOST: "0.0.0.0"
+      AIVM_PORT: "4000"
+      AIVM_DATA_DIR: "/data"
+      AIVM_LOG_LEVEL: "info"
+      AIVM_LOG_FORMAT: "json"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
@@ -36,4 +36,4 @@ services:
       - testing
 
 volumes:
-  avm-data:
+  aivm-data:

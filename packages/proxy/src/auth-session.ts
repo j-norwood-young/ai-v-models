@@ -49,7 +49,7 @@ async function getUserFromBearerToken(
   const token = extractBearerToken(req);
   if (!token) return null;
 
-  const prefix = token.slice(0, 12);
+  const prefix = token.slice(0, 13);
   const row = await ctx.db.db
     .select()
     .from(apiTokens)
@@ -88,7 +88,7 @@ async function getUserFromSession(
   ctx: AppContext,
   req: FastifyRequest,
 ): Promise<AuthUser | null> {
-  const sessionToken = req.cookies["avm_session"];
+  const sessionToken = req.cookies["aivm_session"];
   if (!sessionToken) return null;
 
   const session = await ctx.db.db

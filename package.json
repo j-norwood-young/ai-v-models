@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "node packages/proxy/dist/index.js",
-    "dev": "concurrently -k -n proxy,web \"pnpm --filter @ai-v-models/proxy dev\" \"pnpm --filter @ai-v-models/web dev\"",
+    "dev": "pnpm --filter @ai-v-models/docs build && concurrently -k -n proxy,web \"pnpm --filter @ai-v-models/proxy dev\" \"pnpm --filter @ai-v-models/web dev\"",
+    "dev:docs": "pnpm --filter @ai-v-models/docs dev",
     "dev:proxy": "pnpm --filter @ai-v-models/proxy dev",
     "dev:web": "pnpm --filter @ai-v-models/web dev",
     "aivm": "node packages/cli/dist/index.js",

@@ -41,7 +41,7 @@ export function registerPluginCommands(program: Command, getClient: () => ApiCli
       const client = getClient();
       const plugins = await client.get<Plugin[]>("/api/v1/plugins");
       if (plugins.length === 0) {
-        console.log(chalk.yellow("No plugins installed. Use `avm plugin install` to add one."));
+        console.log(chalk.yellow("No plugins installed. Use `aivm plugin install` to add one."));
         return;
       }
       const rows = [
@@ -82,9 +82,9 @@ export function registerPluginCommands(program: Command, getClient: () => ApiCli
         }
         console.log();
         console.log(chalk.yellow("Now bind it to a scope:"));
-        console.log(`  avm plugin bind ${plugin.id} --scope global`);
-        console.log(`  avm plugin bind ${plugin.id} --scope vmodel --scope-id <modelId>`);
-        console.log(`  avm plugin bind ${plugin.id} --scope backend --scope-id <backendId>`);
+        console.log(`  aivm plugin bind ${plugin.id} --scope global`);
+        console.log(`  aivm plugin bind ${plugin.id} --scope vmodel --scope-id <modelId>`);
+        console.log(`  aivm plugin bind ${plugin.id} --scope backend --scope-id <backendId>`);
       } catch (err) {
         console.error(chalk.red("Installation failed:"), err instanceof Error ? err.message : String(err));
         process.exit(1);
@@ -160,7 +160,7 @@ export function registerPluginCommands(program: Command, getClient: () => ApiCli
       const client = getClient();
       const bindings = await client.get<Binding[]>(`/api/v1/plugins/${pluginId}/bindings`);
       if (bindings.length === 0) {
-        console.log(chalk.yellow("No bindings. Use `avm plugin bind` to attach this plugin to a scope."));
+        console.log(chalk.yellow("No bindings. Use `aivm plugin bind` to attach this plugin to a scope."));
         return;
       }
       const rows = [
@@ -221,7 +221,7 @@ export function registerPluginCommands(program: Command, getClient: () => ApiCli
             build: "tsc -p tsconfig.json",
             dev: "tsc -p tsconfig.json --watch",
           },
-          "avm-plugin": {
+          "aivm-plugin": {
             name,
             description: `${name} plugin`,
             version: "1.0.0",
@@ -307,15 +307,15 @@ npm run build
 
 \`\`\`bash
 # From the local directory:
-avm plugin install local:${targetDir}
+aivm plugin install local:${targetDir}
 
 # After publishing to npm:
-avm plugin install npm:@my-org/${slug}
+aivm plugin install npm:@my-org/${slug}
 \`\`\`
 
 ## Config
 
-See \`package.json\` under the \`"avm-plugin".configSchema\` key for available config options.
+See \`package.json\` under the \`"aivm-plugin".configSchema\` key for available config options.
 `,
       );
 
@@ -326,7 +326,7 @@ See \`package.json\` under the \`"avm-plugin".configSchema\` key for available c
       console.log("  npm install");
       console.log("  # Edit src/index.ts to implement your plugin");
       console.log("  npm run build");
-      console.log(`  avm plugin install local:${targetDir}`);
+      console.log(`  aivm plugin install local:${targetDir}`);
       console.log();
       console.log("See the plugin authoring guide: docs/guide/plugin-authoring.md");
     });

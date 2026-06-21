@@ -32,7 +32,7 @@ pnpm dev
 
 The Vite dev server proxies `/api` to the dev proxy on port 4001, so login cookies work without CORS configuration.
 
-Override the dev API port with `AVM_PORT` (and set `AVM_PROXY_URL` for the Vite proxy to match).
+Override the dev API port with `AIVM_PORT` (and set `AIVM_PROXY_URL` for the Vite proxy to match).
 
 ### Run services individually
 
@@ -51,7 +51,7 @@ pnpm dev:proxy
 ## Default admin login
 
 - Username: `admin`
-- Password: `changeme123` (or `AVM_ADMIN_PASSWORD` on first run)
+- Password: `changeme123` (or `AIVM_ADMIN_PASSWORD` on first run)
 
 Use **http://localhost:5173** for the admin UI in development. The dev API listens on **http://localhost:4001** (production uses 4000).
 
@@ -83,7 +83,7 @@ Production serves the built admin UI from the proxy process. Development intenti
 ```
 packages/core/     Shared types, config, SQLite schema, crypto
 packages/proxy/    Fastify server, /v1 API, management API
-packages/cli/      `avm` CLI
+packages/cli/      `aivm` CLI
 packages/hooks-sdk Hook authoring interface
 packages/mcp/      MCP management server
 packages/tui/      Ink terminal dashboard

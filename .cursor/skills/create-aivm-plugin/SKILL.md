@@ -9,13 +9,13 @@ A plugin is a TypeScript package that hooks into the proxy's request/response pi
 ## Quick scaffold
 
 ```bash
-avm plugin create my-plugin-name
+aivm plugin create my-plugin-name
 cd my-plugin-name
 npm install
 ```
 
 This creates:
-- `package.json` — includes the required `"avm-plugin"` manifest
+- `package.json` — includes the required `"aivm-plugin"` manifest
 - `src/index.ts` — the plugin implementation
 - `tsconfig.json` — TypeScript config
 - `README.md`
@@ -116,11 +116,11 @@ import {
 } from "@ai-v-models/plugin-sdk";
 ```
 
-## The `"avm-plugin"` manifest (in `package.json`)
+## The `"aivm-plugin"` manifest (in `package.json`)
 
 ```json
 {
-  "avm-plugin": {
+  "aivm-plugin": {
     "name": "My Plugin",
     "description": "Short description",
     "version": "1.0.0",
@@ -147,20 +147,20 @@ Keep `configSchema` in sync with the `config` object passed to `definePlugin`. T
 npm run build
 
 # Install locally into a running proxy
-avm plugin install local:/absolute/path/to/your/plugin
+aivm plugin install local:/absolute/path/to/your/plugin
 
 # Bind globally (applies to all requests)
-avm plugin bind <pluginId> --scope global
+aivm plugin bind <pluginId> --scope global
 
 # Bind to a specific v-model
-avm plugin bind <pluginId> --scope vmodel --scope-id my-model-id
+aivm plugin bind <pluginId> --scope vmodel --scope-id my-model-id
 
 # Bind to a specific backend
-avm plugin bind <pluginId> --scope backend --scope-id <backendId>
+aivm plugin bind <pluginId> --scope backend --scope-id <backendId>
 
 # Publish to npm then install
 npm publish
-avm plugin install npm:@my-org/my-plugin
+aivm plugin install npm:@my-org/my-plugin
 ```
 
 ## Sandboxing constraints
@@ -179,7 +179,7 @@ Code that imports Node built-ins will fail at bundle time. Keep your plugin's de
 For plugins that need to read or modify the full response (translation, summarisation, etc.):
 
 ```json
-{ "avm-plugin": { "needsResponseBuffer": true, "hooks": ["onRequest", "onResponse"] } }
+{ "aivm-plugin": { "needsResponseBuffer": true, "hooks": ["onRequest", "onResponse"] } }
 ```
 
 ```ts
@@ -227,6 +227,6 @@ hooks: {
 
 ## Testing your plugin locally
 
-Use `avm plugin install local:<path>` to install from your local directory, then bind it and make a test request through the proxy. The proxy logs show plugin execution details.
+Use `aivm plugin install local:<path>` to install from your local directory, then bind it and make a test request through the proxy. The proxy logs show plugin execution details.
 
 The admin UI at `/plugins` lets you manage bindings and configure per-binding settings through the auto-generated config form.

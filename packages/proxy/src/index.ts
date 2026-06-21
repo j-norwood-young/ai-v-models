@@ -67,6 +67,7 @@ const healthMonitor = new HealthMonitor(
   masterKey,
   config.health.checkIntervalSecs,
   config.health.timeoutMs,
+  ctx.sse,
 );
 healthMonitor.start();
 

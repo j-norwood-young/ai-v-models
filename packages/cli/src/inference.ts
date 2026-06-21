@@ -1,7 +1,7 @@
 import { buildChatCompletionUrl } from "@ai-v-models/core/http";
 import type { ApiClient } from "./api-client.js";
 
-const API_KEY_PREFIX = "avm-sk-";
+const API_KEY_PREFIX = "aivm-sk-";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -36,13 +36,13 @@ export async function resolveApiKey(
   keyOrPrefix: string,
   adminClient?: ApiClient,
 ): Promise<string> {
-  if (keyOrPrefix.startsWith(API_KEY_PREFIX) && keyOrPrefix.length > 12) {
+  if (keyOrPrefix.startsWith(API_KEY_PREFIX) && keyOrPrefix.length > 13) {
     return keyOrPrefix;
   }
 
   if (!adminClient) {
     throw new Error(
-      "Key prefix given but no admin token — set AIVM_ADMIN_TOKEN or pass a full avm-sk-… key",
+      "Key prefix given but no admin token — set AIVM_ADMIN_TOKEN or pass a full aivm-sk-… key",
     );
   }
 
@@ -163,5 +163,5 @@ async function streamResponse(res: Response): Promise<void> {
 }
 
 export function readApiKeyFromEnv(): string | undefined {
-  return process.env["AIVM_API_KEY"] ?? process.env["AVM_API_KEY"];
+  return process.env["AIVM_API_KEY"];
 }

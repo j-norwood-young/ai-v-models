@@ -3,6 +3,8 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "ai-v-models",
   description: "Modern streaming reverse proxy for OpenAI-compatible LLMs",
+  base: "/docs/",
+  ignoreDeadLinks: true,
   themeConfig: {
     logo: "/logo.svg",
     nav: [

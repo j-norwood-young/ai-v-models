@@ -16,8 +16,8 @@ export async function ensureAdminUser(db: DbClient): Promise<void> {
 
   if (existing.length > 0) return;
 
-  const adminUsername = process.env["AVM_ADMIN_USER"] ?? "admin";
-  const adminPassword = process.env["AVM_ADMIN_PASSWORD"] ?? "admin";
+  const adminUsername = process.env["AIVM_ADMIN_USER"] ?? "admin";
+  const adminPassword = process.env["AIVM_ADMIN_PASSWORD"] ?? "admin";
 
   const passwordHash = await hash(adminPassword);
   const now = Date.now();

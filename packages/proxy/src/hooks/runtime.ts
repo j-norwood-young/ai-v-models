@@ -152,12 +152,12 @@ export class HookRuntime {
     const body = JSON.stringify({ request, ctx });
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "X-AVM-Hook-Trigger": "pre-request",
+      "X-AIVM-Hook-Trigger": "pre-request",
     };
 
     if (hook.webhookSecret) {
       const sig = createHmac("sha256", hook.webhookSecret).update(body).digest("hex");
-      headers["X-AVM-Signature"] = `sha256=${sig}`;
+      headers["X-AIVM-Signature"] = `sha256=${sig}`;
     }
 
     const res = await fetch(hook.webhookUrl!, {
@@ -183,12 +183,12 @@ export class HookRuntime {
     const body = JSON.stringify({ response, ctx });
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "X-AVM-Hook-Trigger": "post-completion",
+      "X-AIVM-Hook-Trigger": "post-completion",
     };
 
     if (hook.webhookSecret) {
       const sig = createHmac("sha256", hook.webhookSecret).update(body).digest("hex");
-      headers["X-AVM-Signature"] = `sha256=${sig}`;
+      headers["X-AIVM-Signature"] = `sha256=${sig}`;
     }
 
     await fetch(hook.webhookUrl!, {

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "avm-tui": "./dist/index.js"
+    "aivm-tui": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

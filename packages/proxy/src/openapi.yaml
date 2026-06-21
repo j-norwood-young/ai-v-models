@@ -1,0 +1,454 @@
+openapi: 3.1.0
+info:
+  title: ai-v-models API
+  description: |
+    Management REST API and OpenAI-compatible inference endpoints for ai-v-models.
+
+    **Management API** (`/api/v1/*`) requires admin authentication via session cookie or Bearer token.
+
+    **Inference API** (`/v1/*`) requires an API key in the `Authorization: Bearer` header.
+  version: 0.0.1
+
+servers:
+  - url: /
+    description: Current host
+
+tags:
+  - name: Auth
+    description: Admin session authentication
+  - name: Backends
+    description: LLM backend configuration
+  - name: Virtual Models
+    description: Virtual model aliases and load balancing
+  - name: API Keys
+    description: Client API key lifecycle
+  - name: Hooks
+    description: Pre/post request hooks
+  - name: Metrics
+    description: Usage metrics and rollups
+  - name: Events
+    description: Server-sent events stream
+  - name: OpenAI
+    description: OpenAI-compatible inference endpoints
+  - name: System
+    description: Health and observability
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: aivm_session
+    bearerAuth:
+      type: http
+      scheme: bearer
+    apiKeyAuth:
+      type: http
+      scheme: bearer
+      description: Client API key (aivm-sk-…)
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Session established (aivm_session cookie set)
+        "401":
+          description: Invalid credentials
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current admin user
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Authenticated user profile
+        "401":
+          description: Not authenticated
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: End admin session
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Logged out
+
+  /api/v1/backends:
+    get:
+      tags: [Backends]
+      summary: List backends
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Backend list
+    post:
+      tags: [Backends]
+      summary: Create backend
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, hostName, provider, baseUrl]
+              properties:
+                name: { type: string }
+                displayName: { type: string }
+                hostName: { type: string }
+                provider: { type: string, example: lmstudio }
+                baseUrl: { type: string, format: uri }
+                keyMode: { type: string, enum: [passthrough, abstraction] }
+                apiKey: { type: string }
+                enabled: { type: boolean }
+                weight: { type: integer }
+      responses:
+        "201":
+          description: Backend created
+
+  /api/v1/backends/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Backends]
+      summary: Get backend
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Backend details
+        "404":
+          description: Not found
+    patch:
+      tags: [Backends]
+      summary: Update backend
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated backend
+    delete:
+      tags: [Backends]
+      summary: Delete backend
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "204":
+          description: Deleted
+
+  /api/v1/backends/{id}/test:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Backends]
+      summary: Test backend connectivity
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Test result with latency and discovered models
+
+  /api/v1/vmodels:
+    get:
+      tags: [Virtual Models]
+      summary: List virtual models
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Virtual model list
+    post:
+      tags: [Virtual Models]
+      summary: Create virtual model
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [modelId, backends]
+              properties:
+                modelId: { type: string }
+                displayName: { type: string }
+                balancingStrategy:
+                  type: string
+                  enum: [session-pin, round-robin, weighted, least-connections, least-latency]
+                streaming: { type: boolean }
+                allowToolCalling: { type: boolean }
+                backends:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      backendId: { type: string }
+                      backendModelId: { type: string }
+                      weight: { type: integer }
+      responses:
+        "201":
+          description: Virtual model created
+
+  /api/v1/vmodels/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Virtual Models]
+      summary: Get virtual model
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Virtual model details
+    patch:
+      tags: [Virtual Models]
+      summary: Update virtual model
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Updated virtual model
+    delete:
+      tags: [Virtual Models]
+      summary: Delete virtual model
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "204":
+          description: Deleted
+
+  /api/v1/keys:
+    get:
+      tags: [API Keys]
+      summary: List API keys
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Key list (secrets redacted)
+    post:
+      tags: [API Keys]
+      summary: Create API key
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                allowedModels: { type: array, items: { type: string }, nullable: true }
+                rateLimitRpm: { type: integer }
+                tokenBudgetDay: { type: integer }
+                expiresAt: { type: string, format: date-time, nullable: true }
+      responses:
+        "201":
+          description: Key created (full key returned once)
+
+  /api/v1/keys/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [API Keys]
+      summary: Update API key
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Updated key
+    delete:
+      tags: [API Keys]
+      summary: Delete API key
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "204":
+          description: Deleted
+
+  /api/v1/keys/{id}/suspend:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [API Keys]
+      summary: Suspend API key
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Key suspended
+
+  /api/v1/keys/{id}/resume:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [API Keys]
+      summary: Resume API key
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Key resumed
+
+  /api/v1/hooks:
+    get:
+      tags: [Hooks]
+      summary: List hooks
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Hook list
+    post:
+      tags: [Hooks]
+      summary: Create hook
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "201":
+          description: Hook created
+
+  /api/v1/hooks/{id}/test:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Hooks]
+      summary: Test hook
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Hook test result
+
+  /api/v1/metrics/summary:
+    get:
+      tags: [Metrics]
+      summary: Metrics summary (24h)
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: Aggregated usage summary
+
+  /api/v1/metrics/rollups:
+    get:
+      tags: [Metrics]
+      summary: Metrics rollups
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [hour, day] }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Time-series rollups
+
+  /api/v1/events:
+    get:
+      tags: [Events]
+      summary: Live event stream (SSE)
+      security: [{ sessionCookie: [] }, { bearerAuth: [] }]
+      responses:
+        "200":
+          description: text/event-stream
+
+  /v1/models:
+    get:
+      tags: [OpenAI]
+      summary: List models
+      security: [{ apiKeyAuth: [] }]
+      responses:
+        "200":
+          description: OpenAI-compatible model list
+
+  /v1/chat/completions:
+    post:
+      tags: [OpenAI]
+      summary: Chat completion
+      security: [{ apiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model, messages]
+              properties:
+                model: { type: string }
+                messages:
+                  type: array
+                  items:
+                    type: object
+                stream: { type: boolean }
+      responses:
+        "200":
+          description: Completion response or SSE stream
+
+  /v1/embeddings:
+    post:
+      tags: [OpenAI]
+      summary: Create embeddings
+      security: [{ apiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Embeddings response
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        "200":
+          description: Server is healthy
+
+  /ready:
+    get:
+      tags: [System]
+      summary: Readiness check
+      responses:
+        "200":
+          description: Server is ready
+        "503":
+          description: Not ready
+
+  /metrics:
+    get:
+      tags: [System]
+      summary: Prometheus metrics
+      responses:
+        "200":
+          description: Prometheus text format

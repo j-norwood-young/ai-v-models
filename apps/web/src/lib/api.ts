@@ -441,6 +441,7 @@ export interface BackendHealth {
 	name: string;
 	health: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
 	latency_ms?: number;
+	enabled?: boolean;
 }
 
 export interface MetricsRollup {

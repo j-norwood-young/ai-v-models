@@ -296,7 +296,7 @@ function reconstructResponseFromSse(raw: string): import("@ai-v-models/plugin-sd
   }
 
   const result: import("@ai-v-models/plugin-sdk").ChatResponse = {
-    id: id || `avm-reconstructed-${Date.now()}`,
+    id: id || `aivm-reconstructed-${Date.now()}`,
     object: "chat.completion",
     created,
     model: model || "unknown",

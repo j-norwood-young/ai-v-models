@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch"
   },
-  "avm-plugin": {
+  "aivm-plugin": {
     "name": "Talk like a Pirate",
     "description": "Injects a pirate-speak instruction into the system prompt. Arrr!",
     "version": "1.0.0",
