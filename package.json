@@ -13,7 +13,7 @@
     "dev": "concurrently -k -n proxy,web \"pnpm --filter @ai-v-models/proxy dev\" \"pnpm --filter @ai-v-models/web dev\"",
     "dev:proxy": "pnpm --filter @ai-v-models/proxy dev",
     "dev:web": "pnpm --filter @ai-v-models/web dev",
-    "avm": "node packages/cli/dist/index.js",
+    "aivm": "node packages/cli/dist/index.js",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:e2e": "vitest run --project e2e",

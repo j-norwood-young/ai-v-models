@@ -92,7 +92,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Virtual Model — ai-v-models</title>
+	<title>Edit Virtual Model — AiVM</title>
 </svelte:head>
 
 <div class="p-6 max-w-3xl mx-auto">

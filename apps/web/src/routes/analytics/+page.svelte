@@ -59,25 +59,20 @@
 </script>
 
 <svelte:head>
-	<title>Metrics — ai-v-models</title>
+	<title>Metrics — AiVM</title>
 </svelte:head>
 
-<div class="p-6 max-w-7xl mx-auto">
+<div class="page">
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h1 class="text-2xl font-bold text-gray-100">Metrics</h1>
-			<p class="text-sm text-gray-400 mt-1">Usage statistics and performance data</p>
+			<h1 class="text-2xl font-bold text-[var(--color-text)]">Metrics</h1>
+			<p class="text-sm text-[var(--color-text-muted)] mt-1">Usage statistics and performance data</p>
 		</div>
 		<div class="flex items-center gap-2">
-			{#each (['hour', 'day', 'week', 'month'] as const) as p}
+			{#each (['hour', 'day', 'week', 'month'] as const) as p (p)}
 				<button
 					onclick={() => (period = p)}
-					class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors capitalize"
-					class:bg-cyan-500={period === p}
-					class:text-white={period === p}
-					class:bg-gray-800={period !== p}
-					class:text-gray-400={period !== p}
-					class:hover:bg-gray-700={period !== p}
+					class="{period === p ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'} capitalize"
 				>
 					{p}
 				</button>
@@ -94,32 +89,32 @@
 	{:else if summary}
 		<!-- Summary Cards -->
 		<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Requests</p>
-				<p class="text-2xl font-bold text-gray-100">{formatNum(summary.total_requests_24h)}</p>
-				<p class="text-xs text-gray-500 mt-1">24 hours</p>
+			<div class="card p-4">
+				<p class="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Requests</p>
+				<p class="text-2xl font-bold text-[var(--color-text)]">{formatNum(summary.total_requests_24h)}</p>
+				<p class="text-xs text-[var(--color-text-subtle)] mt-1">24 hours</p>
 			</div>
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Tokens</p>
-				<p class="text-2xl font-bold text-gray-100">{formatNum(summary.total_tokens_24h)}</p>
-				<p class="text-xs text-gray-500 mt-1">24 hours</p>
+			<div class="card p-4">
+				<p class="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Tokens</p>
+				<p class="text-2xl font-bold text-[var(--color-text)]">{formatNum(summary.total_tokens_24h)}</p>
+				<p class="text-xs text-[var(--color-text-subtle)] mt-1">24 hours</p>
 			</div>
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Error Rate</p>
-				<p class="text-2xl font-bold" class:text-red-400={summary.error_rate_24h > 0.05} class:text-gray-100={summary.error_rate_24h <= 0.05}>
+			<div class="card p-4">
+				<p class="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Error Rate</p>
+				<p class="text-2xl font-bold {summary.error_rate_24h > 0.05 ? 'text-red-400' : 'text-[var(--color-text)]'}">
 					{formatPct(summary.error_rate_24h)}
 				</p>
-				<p class="text-xs text-gray-500 mt-1">24 hours</p>
+				<p class="text-xs text-[var(--color-text-subtle)] mt-1">24 hours</p>
 			</div>
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Avg TTFT</p>
-				<p class="text-2xl font-bold text-gray-100">
+			<div class="card p-4">
+				<p class="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Avg TTFT</p>
+				<p class="text-2xl font-bold text-[var(--color-text)]">
 					{summary.avg_ttft_ms != null ? `${summary.avg_ttft_ms.toFixed(0)}ms` : '—'}
 				</p>
 			</div>
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Avg TPS</p>
-				<p class="text-2xl font-bold text-gray-100">
+			<div class="card p-4">
+				<p class="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Avg TPS</p>
+				<p class="text-2xl font-bold text-[var(--color-text)]">
 					{summary.avg_tps != null ? summary.avg_tps.toFixed(1) : '—'}
 				</p>
 			</div>
@@ -128,11 +123,11 @@
 		<!-- Charts -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 			<!-- Requests Chart -->
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<h2 class="text-sm font-medium text-gray-300 mb-4">Requests Over Time</h2>
+			<div class="card p-4">
+				<h2 class="text-sm font-medium text-[var(--color-text-muted)] mb-4">Requests Over Time</h2>
 				{#if rollups.length > 0}
 					<div class="flex items-end gap-0.5 h-36">
-						{#each rollups as rollup}
+						{#each rollups as rollup, i (i)}
 							{@const pct = (rollup.requests / maxRequests) * 100}
 							<div
 								class="flex-1 bg-cyan-500/70 hover:bg-cyan-400 rounded-t-sm transition-colors cursor-default"
@@ -141,21 +136,21 @@
 							></div>
 						{/each}
 					</div>
-					<div class="flex justify-between mt-2 text-xs text-gray-500">
+					<div class="flex justify-between mt-2 text-xs text-[var(--color-text-subtle)]">
 						<span>{formatTime(rollups[0]?.timestamp ?? '')}</span>
 						<span>{formatTime(rollups[rollups.length - 1]?.timestamp ?? '')}</span>
 					</div>
 				{:else}
-					<div class="flex items-center justify-center h-36 text-gray-600 text-sm">No data</div>
+					<div class="flex items-center justify-center h-36 text-[var(--color-text-subtle)] text-sm">No data</div>
 				{/if}
 			</div>
 
 			<!-- Tokens Chart -->
-			<div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-				<h2 class="text-sm font-medium text-gray-300 mb-4">Tokens Over Time</h2>
+			<div class="card p-4">
+				<h2 class="text-sm font-medium text-[var(--color-text-muted)] mb-4">Tokens Over Time</h2>
 				{#if rollups.length > 0}
 					<div class="flex items-end gap-0.5 h-36">
-						{#each rollups as rollup}
+						{#each rollups as rollup, i (i)}
 							{@const pct = (rollup.tokens / maxTokens) * 100}
 							<div
 								class="flex-1 bg-violet-500/70 hover:bg-violet-400 rounded-t-sm transition-colors cursor-default"
@@ -164,40 +159,40 @@
 							></div>
 						{/each}
 					</div>
-					<div class="flex justify-between mt-2 text-xs text-gray-500">
+					<div class="flex justify-between mt-2 text-xs text-[var(--color-text-subtle)]">
 						<span>{formatTime(rollups[0]?.timestamp ?? '')}</span>
 						<span>{formatTime(rollups[rollups.length - 1]?.timestamp ?? '')}</span>
 					</div>
 				{:else}
-					<div class="flex items-center justify-center h-36 text-gray-600 text-sm">No data</div>
+					<div class="flex items-center justify-center h-36 text-[var(--color-text-subtle)] text-sm">No data</div>
 				{/if}
 			</div>
 		</div>
 
 		<!-- Backend Health Table -->
-		<div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-			<div class="px-4 py-3 border-b border-gray-800">
-				<h2 class="text-sm font-medium text-gray-300">Backend Status</h2>
+		<div class="table-container">
+			<div class="px-4 py-3 border-b border-[var(--color-border-subtle)]">
+				<h2 class="text-sm font-medium text-[var(--color-text-muted)]">Backend Status</h2>
 			</div>
-			<table class="w-full text-sm">
+			<table>
 				<thead>
-					<tr class="border-b border-gray-800">
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Backend</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Health</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Latency</th>
+					<tr>
+						<th>Backend</th>
+						<th>Health</th>
+						<th>Latency</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-800">
+				<tbody>
 					{#each summary.backends as b (b.id)}
-						<tr class="hover:bg-gray-800/40 transition-colors">
-							<td class="px-4 py-3 text-gray-200">{b.name}</td>
-							<td class="px-4 py-3">
+						<tr>
+							<td class="text-[var(--color-text)]">{b.name}</td>
+							<td>
 								<div class="flex items-center gap-2">
 									<span class="w-2 h-2 rounded-full {b.health === 'healthy' ? 'bg-green-500' : b.health === 'degraded' ? 'bg-yellow-500' : b.health === 'unhealthy' ? 'bg-red-500' : 'bg-gray-500'}"></span>
-									<span class="text-gray-400 capitalize">{b.health}</span>
+									<span class="text-[var(--color-text-muted)] capitalize">{b.health}</span>
 								</div>
 							</td>
-							<td class="px-4 py-3 text-gray-400">
+							<td class="text-[var(--color-text-muted)]">
 								{b.latency_ms != null ? `${b.latency_ms}ms` : '—'}
 							</td>
 						</tr>

@@ -54,7 +54,7 @@
 </script>
 
 <svelte:head>
-	<title>{hookType === 'webhook' ? 'New Webhook' : 'New Internal Hook'} — ai-v-models</title>
+	<title>{hookType === 'webhook' ? 'New Webhook' : 'New Internal Hook'} — AiVM</title>
 </svelte:head>
 
 <div class="p-6 max-w-3xl mx-auto">

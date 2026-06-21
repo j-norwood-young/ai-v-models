@@ -47,22 +47,16 @@
 </script>
 
 <svelte:head>
-	<title>Hooks — ai-v-models</title>
+	<title>Hooks — AiVM</title>
 </svelte:head>
 
-<div class="p-6 max-w-7xl mx-auto">
+<div class="page">
 	<PageHeader title="Hooks" subtitle="Event-driven webhooks and internal handlers">
 		{#snippet actions()}
-			<a
-				href="/hooks/new?type=webhook"
-				class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-medium rounded-lg text-sm transition-colors"
-			>
+			<a href="/hooks/new?type=webhook" class="btn btn-primary btn-md">
 				+ Add Webhook
 			</a>
-			<a
-				href="/hooks/new?type=internal"
-				class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium rounded-lg text-sm transition-colors"
-			>
+			<a href="/hooks/new?type=internal" class="btn btn-secondary btn-md">
 				+ Add Internal
 			</a>
 		{/snippet}
@@ -84,35 +78,37 @@
 			</div>
 		</div>
 	{:else}
-		<div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-			<table class="w-full text-sm">
+		<div class="table-container">
+			<table>
 				<thead>
-					<tr class="border-b border-gray-800">
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Type</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Trigger</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Target</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Enabled</th>
-						<th class="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+					<tr>
+						<th>Name</th>
+						<th>Type</th>
+						<th>Trigger</th>
+						<th class="hidden md:table-cell">Target</th>
+						<th>Enabled</th>
+						<th class="text-right">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-800">
+				<tbody>
 					{#each hooks as hook (hook.id)}
-						<tr class="hover:bg-gray-800/40 transition-colors">
-							<td class="px-4 py-3 text-gray-200 font-medium">{hook.name}</td>
-							<td class="px-4 py-3">
-								<span class="px-2 py-0.5 rounded-full text-xs border {hook.type === 'webhook' ? 'bg-blue-500/20 text-blue-400 border-blue-800' : 'bg-purple-500/20 text-purple-400 border-purple-800'}">
+						<tr>
+							<td class="text-[var(--color-text)] font-medium">{hook.name}</td>
+							<td>
+								<span class="{hook.type === 'webhook' ? 'badge badge-cyan' : 'badge badge-gray'}">
 									{hook.type}
 								</span>
 							</td>
-							<td class="px-4 py-3 text-gray-400 font-mono text-xs">{hook.trigger}</td>
-							<td class="px-4 py-3 text-gray-400 text-xs truncate max-w-[200px] hidden md:table-cell">
+							<td class="text-[var(--color-text-muted)] font-mono text-xs">{hook.trigger}</td>
+							<td class="text-[var(--color-text-muted)] text-xs truncate max-w-[200px] hidden md:table-cell">
 								{hook.url ?? hook.module ?? '—'}
 							</td>
-							<td class="px-4 py-3">
-								<span class="w-2 h-2 rounded-full inline-block {hook.enabled ? 'bg-green-500' : 'bg-gray-600'}"></span>
+							<td>
+								<span class="{hook.enabled ? 'badge badge-green' : 'badge badge-gray'}">
+									{hook.enabled ? 'Enabled' : 'Disabled'}
+								</span>
 							</td>
-							<td class="px-4 py-3 text-right">
+							<td class="text-right">
 								<div class="flex items-center justify-end gap-2">
 									{#if testResults[hook.id]?.loading}
 										<span class="text-xs text-gray-500">Testing…</span>
@@ -124,23 +120,17 @@
 											<span class="text-xs text-red-400" title={r.error}>✗ Failed</span>
 										{/if}
 									{/if}
-									<button
-										onclick={() => testHook(hook.id)}
-										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
-									>
+									<button onclick={() => testHook(hook.id)} class="btn btn-sm btn-secondary">
 										Test
 									</button>
-									<a
-										href="/hooks/{hook.id}/edit"
-										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
-									>
+									<a href="/hooks/{hook.id}/edit" class="btn btn-sm btn-secondary">
 										Edit
 									</a>
 									{#if deleteConfirm === hook.id}
-										<button onclick={() => handleDelete(hook.id)} class="px-2.5 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded-md transition-colors">Confirm</button>
-										<button onclick={() => (deleteConfirm = null)} class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors">Cancel</button>
+										<button onclick={() => handleDelete(hook.id)} class="btn btn-sm btn-danger-solid">Confirm</button>
+										<button onclick={() => (deleteConfirm = null)} class="btn btn-sm btn-secondary">Cancel</button>
 									{:else}
-										<button onclick={() => (deleteConfirm = hook.id)} class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-red-900/50 hover:text-red-400 text-gray-400 rounded-md transition-colors">Delete</button>
+										<button onclick={() => (deleteConfirm = hook.id)} class="btn btn-sm btn-danger">Delete</button>
 									{/if}
 								</div>
 							</td>

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "avm": "./dist/index.js"
+    "aivm": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

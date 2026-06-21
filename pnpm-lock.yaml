@@ -184,6 +184,15 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/plugin-sdk:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.30
+        version: 22.19.21
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/proxy:
     dependencies:
       '@ai-v-models/core':

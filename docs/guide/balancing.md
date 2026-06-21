@@ -70,7 +70,7 @@ Weights are per v-model backend mapping, not global:
 
 ```bash
 # Add backend with weight 3
-avm vmodel add-backend smart-chat \
+aivm vmodel add-backend smart-chat \
   --backend-id backend-abc \
   --backend-model qwen3.5-35b \
   --weight 3

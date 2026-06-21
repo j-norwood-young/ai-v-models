@@ -32,16 +32,13 @@
 </script>
 
 <svelte:head>
-	<title>Virtual Models — ai-v-models</title>
+	<title>Virtual Models — AiVM</title>
 </svelte:head>
 
-<div class="p-6 max-w-7xl mx-auto">
+<div class="page">
 	<PageHeader title="Virtual Models" subtitle="Route model IDs to backend pools">
 		{#snippet actions()}
-			<a
-				href="/vmodels/new"
-				class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-medium rounded-lg text-sm transition-colors"
-			>
+			<a href="/vmodels/new" class="btn btn-primary btn-md">
 				+ Create V-Model
 			</a>
 		{/snippet}
@@ -62,47 +59,44 @@
 			<a href="/vmodels/new" class="text-cyan-400 hover:text-cyan-300 text-sm">Create V-Model →</a>
 		</div>
 	{:else}
-		<div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-			<table class="w-full text-sm">
+		<div class="table-container">
+			<table>
 				<thead>
-					<tr class="border-b border-gray-800">
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Model ID</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Display Name</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Strategy</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Streaming</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Backends</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Enabled</th>
-						<th class="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+					<tr>
+						<th>Model ID</th>
+						<th>Display Name</th>
+						<th>Strategy</th>
+						<th>Streaming</th>
+						<th>Backends</th>
+						<th>Enabled</th>
+						<th class="text-right">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-800">
+				<tbody>
 					{#each vmodels as vm (vm.id)}
-						<tr class="hover:bg-gray-800/30 transition-colors">
-							<td class="px-4 py-3 font-mono text-cyan-400">{vm.model_id}</td>
-							<td class="px-4 py-3 text-gray-200">{vm.display_name}</td>
-							<td class="px-4 py-3 text-gray-400 capitalize">{vm.strategy.replace(/-/g, ' ')}</td>
-							<td class="px-4 py-3">
-								<span class="px-2 py-0.5 rounded-full text-xs border {vm.streaming ? 'bg-green-500/20 text-green-400 border-green-800' : 'bg-gray-700/40 text-gray-500 border-gray-700'}">
+						<tr>
+							<td><span class="font-mono text-cyan-400 text-xs">{vm.model_id}</span></td>
+							<td class="text-gray-200">{vm.display_name}</td>
+							<td class="text-gray-400 capitalize">{vm.strategy.replace(/-/g, ' ')}</td>
+							<td>
+								<span class={vm.streaming ? 'badge badge-green' : 'badge badge-gray'}>
 									{vm.streaming ? 'Yes' : 'No'}
 								</span>
 							</td>
-							<td class="px-4 py-3 text-gray-400">{vm.backends.length}</td>
-							<td class="px-4 py-3">
-								<span class="px-2 py-0.5 rounded-full text-xs border {vm.enabled ? 'bg-green-500/20 text-green-400 border-green-800' : 'bg-gray-700/40 text-gray-500 border-gray-700'}">
+							<td class="text-gray-400">{vm.backends.length}</td>
+							<td>
+								<span class={vm.enabled ? 'badge badge-green' : 'badge badge-gray'}>
 									{vm.enabled ? 'Yes' : 'No'}
 								</span>
 							</td>
-							<td class="px-4 py-3 text-right">
+							<td class="text-right">
 								<div class="flex items-center justify-end gap-2">
-									<a
-										href="/vmodels/{vm.id}/edit"
-										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
-									>
+									<a href="/vmodels/{vm.id}/edit" class="btn btn-sm btn-secondary">
 										Edit
 									</a>
 									<button
 										onclick={() => handleDelete(vm.id)}
-										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-red-900/50 hover:text-red-400 text-gray-400 rounded-md transition-colors"
+										class="btn btn-sm btn-danger"
 									>
 										Delete
 									</button>

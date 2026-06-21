@@ -116,7 +116,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit API Key — ai-v-models</title>
+	<title>Edit API Key — AiVM</title>
 </svelte:head>
 
 <div class="p-6 max-w-3xl mx-auto space-y-4">

@@ -13,7 +13,7 @@ Only a SHA-256 hash is stored. The key is shown only once at creation.
 ### Via CLI
 
 ```bash
-avm key create --name "my-app" \
+aivm key create --name "my-app" \
   --day-budget 100000 \
   --rpm 60 \
   --expires-in 90
@@ -57,14 +57,14 @@ Budgets use rolling periods. At the start of each period (hour/day/week/month), 
 ## Suspending and resuming
 
 ```bash
-avm key suspend avm-sk-xxxx --reason "Over usage"
-avm key resume avm-sk-xxxx
+aivm key suspend avm-sk-xxxx --reason "Over usage"
+aivm key resume avm-sk-xxxx
 ```
 
 ## Per-key logs
 
 ```bash
-avm key logs avm-sk-xxxx --limit 50
+aivm key logs avm-sk-xxxx --limit 50
 ```
 
 Or via API:

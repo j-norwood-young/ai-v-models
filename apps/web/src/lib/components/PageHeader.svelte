@@ -16,14 +16,20 @@
 	<div>
 		{#if parentHref && parentLabel}
 			<div class="flex items-center gap-3 mb-1">
-				<a href={parentHref} class="text-sm text-gray-400 hover:text-gray-100 transition-colors">
-					← {parentLabel}
+				<a
+					href={parentHref}
+					class="flex items-center gap-1 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+				>
+					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M15.75 19.5 8.25 12l7.5-7.5"/>
+					</svg>
+					{parentLabel}
 				</a>
 			</div>
 		{/if}
-		<h1 class="text-2xl font-bold text-gray-100">{title}</h1>
+		<h1 class="text-2xl font-bold text-[var(--color-text)]">{title}</h1>
 		{#if subtitle}
-			<p class="text-sm text-gray-400 mt-1">{subtitle}</p>
+			<p class="text-sm text-[var(--color-text-muted)] mt-1">{subtitle}</p>
 		{/if}
 	</div>
 	{#if actions}

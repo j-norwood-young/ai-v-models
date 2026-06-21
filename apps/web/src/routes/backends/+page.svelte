@@ -56,10 +56,10 @@
 
 	function healthBadge(health: string): string {
 		switch (health) {
-			case 'healthy': return 'bg-green-500/20 text-green-400 border-green-800';
-			case 'degraded': return 'bg-yellow-500/20 text-yellow-400 border-yellow-800';
-			case 'unhealthy': return 'bg-red-500/20 text-red-400 border-red-800';
-			default: return 'bg-gray-500/20 text-gray-400 border-gray-700';
+			case 'healthy': return 'badge badge-green';
+			case 'degraded': return 'badge badge-yellow';
+			case 'unhealthy': return 'badge badge-red';
+			default: return 'badge badge-gray';
 		}
 	}
 
@@ -67,16 +67,13 @@
 </script>
 
 <svelte:head>
-	<title>Backends — ai-v-models</title>
+	<title>Backends — AiVM</title>
 </svelte:head>
 
-<div class="p-6 max-w-7xl mx-auto">
+<div class="page">
 	<PageHeader title="Backends" subtitle="Manage LLM backend connections">
 		{#snippet actions()}
-			<a
-				href="/backends/new"
-				class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-medium rounded-lg text-sm transition-colors"
-			>
+			<a href="/backends/new" class="btn btn-primary btn-md">
 				+ Add Backend
 			</a>
 		{/snippet}
@@ -97,39 +94,39 @@
 			<a href="/backends/new" class="text-cyan-400 hover:text-cyan-300 text-sm">Add Backend →</a>
 		</div>
 	{:else}
-		<div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-			<table class="w-full text-sm">
+		<div class="table-container">
+			<table>
 				<thead>
-					<tr class="border-b border-gray-800 bg-gray-900/50">
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Provider</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">URL</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Health</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden lg:table-cell">Latency</th>
-						<th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Enabled</th>
-						<th class="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+					<tr>
+						<th>Name</th>
+						<th>Provider</th>
+						<th class="hidden md:table-cell">URL</th>
+						<th>Health</th>
+						<th class="hidden lg:table-cell">Latency</th>
+						<th>Enabled</th>
+						<th class="text-right">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-800">
+				<tbody>
 					{#each backends as backend (backend.id)}
-						<tr class="hover:bg-gray-800/40 transition-colors">
-							<td class="px-4 py-3 font-medium text-gray-100">{backend.name}</td>
-							<td class="px-4 py-3 text-gray-400 capitalize">{backend.provider}</td>
-							<td class="px-4 py-3 text-gray-400 hidden md:table-cell font-mono text-xs truncate max-w-[200px]">{backend.url}</td>
-							<td class="px-4 py-3">
-								<span class="px-2 py-0.5 rounded-full text-xs border capitalize {healthBadge(backend.health)}">
+						<tr>
+							<td class="font-medium text-[var(--color-text)]">{backend.name}</td>
+							<td class="text-[var(--color-text-muted)] capitalize">{backend.provider}</td>
+							<td class="text-[var(--color-text-muted)] hidden md:table-cell font-mono text-xs truncate max-w-[200px]">{backend.url}</td>
+							<td>
+								<span class="capitalize {healthBadge(backend.health)}">
 									{backend.health}
 								</span>
 							</td>
-							<td class="px-4 py-3 text-gray-400 hidden lg:table-cell">
+							<td class="text-[var(--color-text-muted)] hidden lg:table-cell">
 								{backend.latency_ms != null ? `${backend.latency_ms}ms` : '—'}
 							</td>
-							<td class="px-4 py-3">
-								<span class="px-2 py-0.5 rounded-full text-xs border {backend.enabled ? 'bg-green-500/20 text-green-400 border-green-800' : 'bg-gray-700/40 text-gray-500 border-gray-700'}">
+							<td>
+								<span class="{backend.enabled ? 'badge badge-green' : 'badge badge-gray'}">
 									{backend.enabled ? 'Yes' : 'No'}
 								</span>
 							</td>
-							<td class="px-4 py-3 text-right">
+							<td class="text-right">
 								<div class="flex items-center justify-end gap-2">
 									{#if testResults[backend.id]?.loading}
 										<span class="text-xs text-gray-500">Testing…</span>
@@ -143,33 +140,33 @@
 									{/if}
 									<button
 										onclick={() => testBackend(backend.id)}
-										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
+										class="btn btn-sm btn-secondary"
 									>
 										Test
 									</button>
 									<a
 										href="/backends/{backend.id}/edit"
-										class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
+										class="btn btn-sm btn-secondary"
 									>
 										Edit
 									</a>
 									{#if deleteConfirm === backend.id}
 										<button
 											onclick={() => handleDelete(backend.id)}
-											class="px-2.5 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded-md transition-colors"
+											class="btn btn-sm btn-danger-solid"
 										>
 											Confirm
 										</button>
 										<button
 											onclick={() => (deleteConfirm = null)}
-											class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition-colors"
+											class="btn btn-sm btn-secondary"
 										>
 											Cancel
 										</button>
 									{:else}
 										<button
 											onclick={() => (deleteConfirm = backend.id)}
-											class="px-2.5 py-1 text-xs bg-gray-800 hover:bg-red-900/50 hover:text-red-400 text-gray-400 rounded-md transition-colors"
+											class="btn btn-sm btn-danger"
 										>
 											Delete
 										</button>

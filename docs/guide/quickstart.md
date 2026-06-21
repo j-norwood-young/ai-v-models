@@ -54,7 +54,7 @@ See [Configuration](./configuration.md) for all options.
 ## Add a backend
 
 ```bash
-pnpm avm backend add \
+pnpm aivm backend add \
   --name lmstudio-bob \
   --url http://192.168.1.100:1234 \
   --provider lmstudio \
@@ -68,7 +68,7 @@ Use `--mode abstraction --api-key sk-...` when the backend needs its own key. Om
 ## Verify
 
 ```bash
-pnpm avm backend test lmstudio-bob
+pnpm aivm backend test lmstudio-bob
 curl http://localhost:4000/v1/models
 ```
 
@@ -77,13 +77,13 @@ Models appear as `model:hostname:provider`, e.g. `qwen3.5-35b:bob:lmstudio`.
 ## Create an API key
 
 ```bash
-pnpm avm key create --name "my-app"
+pnpm aivm key create --name "my-app"
 ```
 
 Save the key when shown — it is only displayed once.
 
 ```bash
-pnpm avm key create --name "limited-app" --rpm 60 --day-budget 100000 --expires-in 90
+pnpm aivm key create --name "limited-app" --rpm 60 --day-budget 100000 --expires-in 90
 ```
 
 ## Chat completion
@@ -102,8 +102,8 @@ curl http://localhost:4000/v1/chat/completions \
 ## Virtual model (optional)
 
 ```bash
-pnpm avm vmodel create --model-id smart-chat --display-name "Smart Chat"
-pnpm avm vmodel add-backend smart-chat \
+pnpm aivm vmodel create --model-id smart-chat --display-name "Smart Chat"
+pnpm aivm vmodel add-backend smart-chat \
   --backend-id <backend-id> \
   --backend-model qwen3.5-35b
 ```
@@ -121,10 +121,10 @@ Runs on port 4000 with data in a Docker volume.
 ## CLI reference
 
 ```bash
-pnpm avm status
-pnpm avm backend list
-pnpm avm vmodel list
-pnpm avm key list
-pnpm avm key suspend <prefix> --reason "Over quota"
-pnpm avm key logs <prefix>
+pnpm aivm status
+pnpm aivm backend list
+pnpm aivm vmodel list
+pnpm aivm key list
+pnpm aivm key suspend <prefix> --reason "Over quota"
+pnpm aivm key logs <prefix>
 ```

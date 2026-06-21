@@ -12,11 +12,11 @@ import { registerAdminTokenCommands } from "./commands/admin-tokens.js";
 const program = new Command();
 
 program
-  .name("avm")
-  .description("ai-v-models CLI — manage your LLM reverse proxy")
+  .name("aivm")
+  .description("AiVM CLI — manage your LLM reverse proxy")
   .version("0.0.1")
-  .option("-u, --url <url>", "Proxy URL", process.env["AVM_URL"] ?? "http://localhost:4000")
-  .option("-t, --token <token>", "Admin API token", process.env["AVM_ADMIN_TOKEN"]);
+  .option("-u, --url <url>", "Proxy URL", process.env["AIVM_URL"] ?? process.env["AVM_URL"] ?? "http://localhost:4000")
+  .option("-t, --token <token>", "Admin API token", process.env["AIVM_ADMIN_TOKEN"] ?? process.env["AVM_ADMIN_TOKEN"]);
 
 program.hook("preSubcommand", (thisCmd) => {
   const opts = thisCmd.opts() as { url: string; token?: string };

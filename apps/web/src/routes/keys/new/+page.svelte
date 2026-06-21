@@ -82,7 +82,7 @@
 </script>
 
 <svelte:head>
-	<title>New API Key — ai-v-models</title>
+	<title>New API Key — AiVM</title>
 </svelte:head>
 
 <div class="p-6 max-w-3xl mx-auto space-y-4">

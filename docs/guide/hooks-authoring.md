@@ -55,10 +55,10 @@ export default hook;
 
 ```bash
 # Install from NPM
-avm hook add-internal --name my-hook --module my-avm-hook --trigger pre-request
+aivm hook add-internal --name my-hook --module my-avm-hook --trigger pre-request
 
 # Install from local path
-avm hook add-internal --name my-hook --module /path/to/hook/dist/index.js --trigger pre-request
+aivm hook add-internal --name my-hook --module /path/to/hook/dist/index.js --trigger pre-request
 ```
 
 ## External hooks (webhooks)
@@ -112,7 +112,7 @@ function verifySignature(body: string, signature: string, secret: string): boole
 ### Register a webhook
 
 ```bash
-avm hook add-webhook \
+aivm hook add-webhook \
   --name my-webhook \
   --url https://my-server.example.com/avm-hook \
   --trigger pre-request \
@@ -160,7 +160,7 @@ interface HookContext {
 ```bash
 # Install hook directly from GitHub
 npm install github:owner/repo#tag --prefix ~/.ai-reverse-proxy/hooks
-avm hook add-internal \
+aivm hook add-internal \
   --name github-hook \
   --module ~/.ai-reverse-proxy/hooks/node_modules/repo-name/dist/index.js \
   --trigger pre-request
