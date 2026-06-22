@@ -29,7 +29,7 @@ This starts the proxy on **http://localhost:4000** with:
 - Management API at `/api/v1/*`
 - Admin UI at `/` (login, dashboards, backends, keys, etc.)
 
-Data is stored in `~/.aivm/`. On first run an admin user is created with password `changeme123` — **change it immediately** in **Settings** after logging in.
+Data is stored in `~/.aivm/`. On first run an admin user is created with password `admin` — **change it immediately** in **Settings** after logging in.
 
 ### Configuration
 

@@ -51,7 +51,7 @@ pnpm dev:proxy
 ## Default admin login
 
 - Username: `admin`
-- Password: `changeme123` (or `AIVM_ADMIN_PASSWORD` on first run)
+- Password: `admin` (or `AIVM_ADMIN_PASSWORD` on first run)
 
 Use **http://localhost:5173** for the admin UI in development. The dev API listens on **http://localhost:4001** (production uses 4000).
 

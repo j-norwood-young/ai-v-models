@@ -80,5 +80,5 @@ AIVM_PORT=8080 AIVM_LOG_LEVEL=debug pnpm start
 AIVM_DATA_DIR=/data pnpm start
 
 # First run with a strong admin password
-AIVM_ADMIN_PASSWORD='changeme123' pnpm start
+AIVM_ADMIN_PASSWORD='your-strong-password' pnpm start
 ```

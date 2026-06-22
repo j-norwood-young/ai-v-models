@@ -8,7 +8,7 @@ The management API is available at `/api/v1/`. All endpoints require admin authe
 `POST /api/v1/auth/login`
 
 ```json
-{ "username": "admin", "password": "changeme123" }
+{ "username": "admin", "password": "admin" }
 ```
 
 Returns a session cookie `aivm_session`.

@@ -22,7 +22,7 @@ Like HAProxy or Nginx, but purpose-built for LLMs — with virtual models, key m
 
 AiVM ships with a polished dark-mode admin interface — no separate deployment required. In production it is served at `/` on the proxy port; in development it runs on `:5173` with the API proxied behind it.
 
-Log in with the default admin account on first run (`admin` / `changeme123` — change this immediately in **Settings**). The UI also supports TOTP 2FA, WebAuthn passkeys, and admin API tokens for automation.
+Log in with the default admin account on first run (`admin` / `admin` — change this immediately in **Settings**). The UI also supports TOTP 2FA, WebAuthn passkeys, and admin API tokens for automation.
 
 ### Backends
 
@@ -86,7 +86,7 @@ This starts the proxy on **http://localhost:4000** with:
 - Management API at `/api/v1/*`
 - Admin UI at `/`
 
-Data is stored in `~/.aivm/`. On first run an admin user is created with password `changeme123` — **change it immediately** in Settings after logging in.
+Data is stored in `~/.aivm/`. On first run an admin user is created with password `admin` — **change it immediately** in Settings after logging in.
 
 ### Docker
 
