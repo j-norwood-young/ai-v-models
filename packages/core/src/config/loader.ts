@@ -6,9 +6,9 @@ import { config as loadDotenv } from "dotenv";
 import { AppConfigSchema, type AppConfig } from "./schema.js";
 import { DEV_PORT, PROD_PORT } from "./constants.js";
 
-/** Returns the default data directory: ~/.ai-reverse-proxy */
+/** Returns the default data directory: ~/.aivm */
 export function defaultDataDir(): string {
-  return join(homedir(), ".ai-reverse-proxy");
+  return join(homedir(), ".aivm");
 }
 
 /** Ensure the data directory exists with correct structure. */

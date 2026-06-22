@@ -86,7 +86,7 @@ This starts the proxy on **http://localhost:4000** with:
 - Management API at `/api/v1/*`
 - Admin UI at `/`
 
-Data is stored in `~/.ai-reverse-proxy/`. On first run an admin user is created with password `changeme123` — **change it immediately** in Settings after logging in.
+Data is stored in `~/.aivm/`. On first run an admin user is created with password `changeme123` — **change it immediately** in Settings after logging in.
 
 ### Docker
 
@@ -141,7 +141,7 @@ Environment variables (prefix `AIVM_`):
 AIVM_PORT=8080 AIVM_LOG_LEVEL=info pnpm start
 ```
 
-Or `~/.ai-reverse-proxy/config.yaml`:
+Or `~/.aivm/config.yaml`:
 
 ```yaml
 server:

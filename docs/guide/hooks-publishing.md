@@ -58,11 +58,11 @@ Modules are copied to `{AIVM_DATA_DIR}/hooks/`.
 ## Install from GitHub
 
 ```bash
-npm install github:owner/repo#v1.0.0 --prefix ~/.ai-reverse-proxy/hooks
+npm install github:owner/repo#v1.0.0 --prefix ~/.aivm/hooks
 
 aivm hook add-internal \
   --name github-hook \
-  --module ~/.ai-reverse-proxy/hooks/node_modules/my-avm-hook/dist/index.js \
+  --module ~/.aivm/hooks/node_modules/my-avm-hook/dist/index.js \
   --trigger pre-request
 ```
 

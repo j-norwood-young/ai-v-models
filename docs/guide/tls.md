@@ -18,6 +18,8 @@ admin.example.com {
 
 ## nginx example
 
+See [Reverse Proxy (nginx)](./reverse-proxy) for a complete nginx config with TLS, streaming (`proxy_buffering off`), and WebSocket/SSE headers. Minimal TLS block:
+
 ```nginx
 server {
   listen 443 ssl;
@@ -35,7 +37,7 @@ server {
 }
 ```
 
-Update `AVM_CORS_ORIGINS` to include your HTTPS admin URL.
+Update `AIVM_CORS_ORIGINS` to include your HTTPS admin URL.
 
 ## Config file TLS fields
 

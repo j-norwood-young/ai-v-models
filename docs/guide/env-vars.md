@@ -43,7 +43,7 @@ Variables can be set in the shell or in a `.env` file in the working directory w
 
 | Variable | Default | Description |
 |---|---|---|
-| `AIVM_DATA_DIR` | `~/.ai-reverse-proxy` | Data directory (`config.yaml`, SQLite DB, keys, logs) |
+| `AIVM_DATA_DIR` | `~/.aivm` | Data directory (`config.yaml`, SQLite DB, keys, logs) |
 | `AIVM_ADMIN_USER` | `admin` | Initial admin username — **first run only** |
 | `AIVM_ADMIN_PASSWORD` | `admin` | Initial admin password — **first run only** |
 

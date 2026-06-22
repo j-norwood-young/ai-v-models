@@ -69,7 +69,7 @@ journalctl -u ai-v-models -f
 
 ## Reverse proxy
 
-Put nginx or Caddy in front for TLS — see [TLS Setup](./tls).
+Put nginx or Caddy in front for TLS — see [Reverse Proxy (nginx)](./reverse-proxy) and [TLS Setup](./tls).
 
 ## Related
 

@@ -36,10 +36,10 @@ Data persists in the `aivm-data` volume. Configuration can be passed via environ
 
 ## Data directory
 
-On first start, ai-v-models creates `~/.ai-reverse-proxy/`:
+On first start, ai-v-models creates `~/.aivm/`:
 
 ```
-~/.ai-reverse-proxy/
+~/.aivm/
   config.yaml      # Optional declarative config
   data.db          # SQLite database
   master.key       # Encryption key for backend secrets (mode 0600)

@@ -159,9 +159,9 @@ interface HookContext {
 
 ```bash
 # Install hook directly from GitHub
-npm install github:owner/repo#tag --prefix ~/.ai-reverse-proxy/hooks
+npm install github:owner/repo#tag --prefix ~/.aivm/hooks
 aivm hook add-internal \
   --name github-hook \
-  --module ~/.ai-reverse-proxy/hooks/node_modules/repo-name/dist/index.js \
+  --module ~/.aivm/hooks/node_modules/repo-name/dist/index.js \
   --trigger pre-request
 ```

@@ -12,22 +12,31 @@ Open http://localhost:4000 — admin UI, API, docs (`/docs/`), and Swagger (`/ap
 
 ## docker-compose.yml
 
-The included compose file:
+The included compose file defines two services:
 
-- Builds from the repo `Dockerfile`
-- Publishes port **4000**
-- Mounts volume `aivm-data` → `/data` (`AIVM_DATA_DIR`)
-- Health check on `GET /health`
+| Service | Port (default) | Role |
+|---------|----------------|------|
+| `proxy` | 4000 | API, admin UI, docs, Swagger |
+| `web` | 5173 | nginx reverse proxy to `proxy` (dev-port parity) |
+
+Both services:
+
+- Build `proxy` from the repo `Dockerfile` (or use a published image)
+- Mount volume `aivm-data` → `/data` (`AIVM_DATA_DIR`) on `proxy`
+- Health check `GET /health` on `proxy`
+
+Host ports are overridable via `.env` (`AIVM_HOST_PROXY_PORT`, `AIVM_HOST_WEB_PORT`). See [Reverse Proxy (nginx)](./reverse-proxy) for the `web` service config and production nginx examples.
 
 ### Environment
 
 | Variable | Value in compose |
 |----------|------------------|
-| `AVM_HOST` | `0.0.0.0` |
-| `AVM_PORT` | `4000` |
-| `AVM_DATA_DIR` | `/data` |
-| `AVM_LOG_LEVEL` | `info` |
-| `AVM_LOG_FORMAT` | `json` |
+| `AIVM_HOST` | `0.0.0.0` |
+| `AIVM_PORT` | `4000` |
+| `AIVM_DATA_DIR` | `/data` |
+| `AIVM_LOG_LEVEL` | `info` |
+| `AIVM_LOG_FORMAT` | `json` |
+| `AIVM_CORS_ORIGINS` | `http://localhost:4000,http://localhost:5173` |
 
 Add secrets via compose `environment` or an env file:
 
@@ -68,6 +77,7 @@ Back up the Docker volume or `/data` contents:
 
 ## Related
 
+- [Reverse Proxy (nginx)](./reverse-proxy)
 - [Installation](./installation)
 - [Kubernetes](./kubernetes)
 - [Environment Variables](./env-vars)

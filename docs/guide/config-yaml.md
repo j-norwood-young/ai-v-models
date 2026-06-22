@@ -1,6 +1,6 @@
 # config.yaml Reference
 
-The main configuration file lives at `{AIVM_DATA_DIR}/config.yaml` (default `~/.ai-reverse-proxy/config.yaml`).
+The main configuration file lives at `{AIVM_DATA_DIR}/config.yaml` (default `~/.aivm/config.yaml`).
 
 See [Configuration](./configuration) for precedence: defaults → `config.yaml` → environment variables.
 
@@ -99,7 +99,7 @@ Invalid values cause startup to fail with a Zod validation error listing each ba
 ## Data directory
 
 ```
-~/.ai-reverse-proxy/
+~/.aivm/
   config.yaml
   data.db
   master.key       # chmod 600 — backs abstraction-mode backend keys

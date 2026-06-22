@@ -14,7 +14,7 @@ Built-in defaults     (lowest)
 
 ## config.yaml
 
-Located at `~/.ai-reverse-proxy/config.yaml` by default (override with `AIVM_DATA_DIR`).
+Located at `~/.aivm/config.yaml` by default (override with `AIVM_DATA_DIR`).
 
 ```yaml
 server:
@@ -53,7 +53,7 @@ Quick reference:
 |---|---|---|
 | `AIVM_HOST` | `0.0.0.0` | Listen host |
 | `AIVM_PORT` | `4000` | Listen port |
-| `AIVM_DATA_DIR` | `~/.ai-reverse-proxy` | Data directory |
+| `AIVM_DATA_DIR` | `~/.aivm` | Data directory |
 | `AIVM_LOG_LEVEL` | `info` | Log level |
 | `AIVM_SESSION_SECRET` | — | Session cookie signing secret |
 | `AIVM_ADMIN_PASSWORD` | `admin` | Initial admin password (first run only) |
@@ -61,7 +61,7 @@ Quick reference:
 ## Data directory structure
 
 ```
-~/.ai-reverse-proxy/
+~/.aivm/
   config.yaml      # Main configuration (human-editable)
   data.db          # SQLite database (keys, usage, metrics, etc.)
   data.db-wal      # WAL journal

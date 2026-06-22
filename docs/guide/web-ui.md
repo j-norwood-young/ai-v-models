@@ -1,6 +1,6 @@
 # Web UI
 
-The SvelteKit admin UI manages backends, v-models, keys, hooks, plugins, and metrics.
+The admin UI manages backends, v-models, keys, hooks, plugins, and metrics.
 
 ## Access
 
